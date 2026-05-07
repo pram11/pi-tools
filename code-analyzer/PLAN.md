@@ -13,7 +13,7 @@
 ## Phase 3: Refinement & Integration (Current)
 - [x] Standardize the JSON output for downstream E2E scenario generators.
 - [x] Implement token-optimization logic to condense analysis results for LLM context windows.
-- [ ] Integrate with the `pi-mono` local skill registry.
+- [x] Integrate with the `pi-mono` local skill registry.
 
 ## Phase 4: Automation & CI
 - [ ] Setup automated "Commit and Push" triggers for the agent upon task completion.
