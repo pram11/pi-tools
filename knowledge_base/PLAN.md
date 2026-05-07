@@ -15,6 +15,6 @@
 - [x] **Delete (삭제)**: 특정 파일이나 디렉토리 경로에 해당하는 벡터/메타데이터를 `DELETE`하는 스크립트.
 
 ## 4단계: 테스트 및 에이전트 연동
-- [ ] `.pi/skills/knowledge-base/` 폴더 내 스킬 등록 및 로드 확인.
+- [x] `.pi/skills/knowledge-base/` 폴더 내 스킬 등록 및 로드 확인.
 - [x] 터미널에서 CRUD 명령 테스트.
-- [ ] Git 동기화 (remote 미설정).
+- [x] Git 동기화 (remote 설정 완료).
