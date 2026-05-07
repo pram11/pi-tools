@@ -67,7 +67,10 @@ def analyze(target: Path, lang_filter: str | None = None) -> list[dict]:
 
 if __name__ == "__main__":
     import json
+    from lib.e2e_report import build_report
+
     target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(".")
     lang = sys.argv[2] if len(sys.argv) > 2 else None
-    results = analyze(target, lang)
-    print(json.dumps(results, indent=2))
+    findings = analyze(target, lang)
+    report = build_report(target, findings)
+    print(json.dumps(report, indent=2))
