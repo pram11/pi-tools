@@ -1,0 +1,3 @@
+[submodule "knowledge_base"]
+	path = knowledge_base
+	url = https://github.com/pram11/nj_knowledge_base.git
