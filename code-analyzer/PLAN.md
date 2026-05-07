@@ -16,5 +16,5 @@
 - [x] Integrate with the `pi-mono` local skill registry.
 
 ## Phase 4: Automation & CI
-- [ ] Setup automated "Commit and Push" triggers for the agent upon task completion.
+- [x] Setup automated "Commit and Push" triggers for the agent upon task completion.
 - [x] Add unit tests for each analyzer plugin.
