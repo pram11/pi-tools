@@ -11,8 +11,8 @@
 - [x] Create a `ProjectDetector` utility to automate plugin selection.
 
 ## Phase 3: Refinement & Integration (Current)
-- [ ] Standardize the JSON output for downstream E2E scenario generators.
-- [ ] Implement token-optimization logic to condense analysis results for LLM context windows.
+- [x] Standardize the JSON output for downstream E2E scenario generators.
+- [x] Implement token-optimization logic to condense analysis results for LLM context windows.
 - [ ] Integrate with the `pi-mono` local skill registry.
 
 ## Phase 4: Automation & CI
