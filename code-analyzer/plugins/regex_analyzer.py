@@ -10,7 +10,7 @@ class RegexAnalyzer(BaseAnalyzer):
 
     @property
     def languages(self) -> list[str]:
-        return [".py", ".js", ".ts", ".java", ".go", ".rs", ".rb", ".c", ".cpp", ".h"]
+        return [".py", ".java", ".go", ".rs", ".rb", ".c", ".cpp", ".h"]
 
     def analyze(self, target: Path) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []

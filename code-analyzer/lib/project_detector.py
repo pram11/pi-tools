@@ -6,6 +6,7 @@ _SIGNATURES = {
     "python": {"requirements.txt", "setup.py", "setup.cfg", "pyproject.toml", "Pipfile"},
     "javascript": {"package.json", "yarn.lock", "package-lock.json"},
     "typescript": {"tsconfig.json"},
+    "nextjs": {"next.config.js", "next.config.mjs", "next.config.ts"},
     "java": {"pom.xml", "build.gradle", "build.gradle.kts"},
     "rust": {"Cargo.toml", "Cargo.lock"},
     "go": {"go.mod", "go.sum"},
@@ -36,6 +37,7 @@ class ProjectDetector:
             exts = {p.suffix.lower() for p in target.rglob("*") if p.is_file() and p.suffix}
             ext_map = {
                 ".py": "python", ".js": "javascript", ".ts": "typescript",
+                ".tsx": "typescript", ".jsx": "javascript",
                 ".java": "java", ".rs": "rust", ".go": "go", ".rb": "ruby",
             }
             for ext, lang in ext_map.items():

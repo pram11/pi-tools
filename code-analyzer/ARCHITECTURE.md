@@ -10,10 +10,10 @@ The system utilizes a **Strategy Pattern** to decouple the orchestration logic f
 4. **Plugin Layer**:
    - `RegexAnalyzer`: A robust fallback for generic pattern matching.
    - `PythonASTAnalyzer`: Deep structural parsing using Python's `ast` module.
-   - `LanguageSpecificPlugins`: Future modules for Java, TypeScript, etc.
+   - `JSXASTAnalyzer`: Deep structural parsing of `.tsx`/`.jsx` using tree-sitter.
 
 ## Directory Structure
-- `code-analyst/`
+- `code-analyzer/`
   - `main.py` (Entry Point)
   - `base.py` (Interface Definitions)
   - `plugins/` (Language-specific Strategies)

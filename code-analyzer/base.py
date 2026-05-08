@@ -24,6 +24,11 @@ class BaseAnalyzer(ABC):
             "feature_type": "Route" | "Component" | "Logic",
             "identifiers": list[str],
             "complexity_score": int,
+            # optional (JS/TSX analyzers):
+            "loc": int,
+            "nesting_depth": int,
+            "routes": list[str],
+            "edges": list[{"type": str, "name": str, "source": str}],
         }
         """
         ...
