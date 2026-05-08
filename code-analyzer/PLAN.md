@@ -32,4 +32,4 @@ Shallow scan of portfolio site → 13 files mapped, but only surface-level. Rege
 - [x] **Cross-File Edges** — map import/export relationships between components (e.g., `Navbar` imports `Link` from `next/navigation`)
 - [x] **Formal .tsx/.jsx Support** — promote patched file-extension support to first-class language detection in `ProjectDetector`
 - [x] **Output Schema Extension** — add `identifiers`, `complexity`, `edges` fields to JSON output for JS/TSX (match Python schema)
-- [ ] **Benchmark** — validate against Depwire's 44-symbol extraction on same portfolio site
+- [x] **Benchmark** — PythonASTAnalyzer: 131/214 (61.2%). Gap: Depwire counts imports/constants/class methods. code-analyzer focuses on functions/classes/methods.

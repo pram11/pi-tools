@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 from typing import Any
 from base import BaseAnalyzer
+from lib.filter import iter_sources
 
 
 class PythonASTAnalyzer(BaseAnalyzer):
@@ -44,9 +45,7 @@ class PythonASTAnalyzer(BaseAnalyzer):
         if target_path.is_file():
             files = [target_path] if target_path.suffix in self.languages else []
         else:
-            files = [
-                p for p in target_path.rglob("*.py") if p.is_file()
-            ]
+            files = iter_sources(target_path, self.languages)
 
         for f in files:
             try:

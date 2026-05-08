@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 from base import BaseAnalyzer
+from lib.filter import iter_sources
 
 
 class RegexAnalyzer(BaseAnalyzer):
@@ -19,7 +20,7 @@ class RegexAnalyzer(BaseAnalyzer):
         if target_path.is_file():
             files = [target_path]
         else:
-            files = list(target_path.rglob("*"))
+            files = iter_sources(target_path, self.languages)
 
         for f in files:
             if not f.is_file() or f.suffix not in self.languages:

@@ -9,6 +9,7 @@ from tree_sitter import Language, Parser
 import tree_sitter_typescript as tst
 
 from base import BaseAnalyzer
+from lib.filter import iter_sources
 
 _TSX_LANGUAGE = Language(tst.language_tsx())
 
@@ -262,10 +263,7 @@ class JSXASTAnalyzer(BaseAnalyzer):
         if target_path.is_file():
             files = [target_path] if target_path.suffix in self.languages else []
         else:
-            files = [
-                p for p in target_path.rglob("*")
-                if p.is_file() and p.suffix in self.languages
-            ]
+            files = iter_sources(target_path, self.languages)
 
         for f in files:
             try:
