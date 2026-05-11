@@ -13,8 +13,8 @@
 - [x] Auto-recovery on page crash / navigation timeout
 
 ## Phase 3: Form Automation
-- [ ] Auto-detect form fields (input, textarea, select)
-- [ ] Smart fill — map field names to values from JSON input
+- [x] Auto-detect form fields (input, textarea, select)
+- [x] Smart fill — map field names to values from JSON input
 - [ ] Submit handling — detect form submission + wait for response
 - [ ] Multi-step form support (wizard flows)
 

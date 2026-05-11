@@ -204,6 +204,51 @@ def action_form_detect(page, args):
     print(json.dumps(fields, indent=2))
 
 
+def smart_fill(page, values: dict) -> list[str]:
+    """Map field names→values. Fills input/textarea/select/checkbox by [name].
+    Returns list of successfully filled field names."""
+    if not values:
+        return []
+    filled = page.evaluate("""
+        (values) => {
+            const results = [];
+            for (const [name, val] of Object.entries(values)) {
+                const el = document.querySelector(`[name=${name}]`);
+                if (!el) continue;
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    el.checked = !!val;
+                } else if (el.tagName.toLowerCase() === 'select') {
+                    const opt = el.querySelector(`option[value=${val}]`) || el.querySelector(`option`);
+                    for (const o of el.options) {
+                        if (o.textContent.trim() === String(val) || o.value === String(val)) {
+                            el.value = o.value;
+                            el.dispatchEvent(new Event('change', {bubbles: true}));
+                            break;
+                        }
+                    }
+                } else {
+                    el.value = String(val);
+                    el.dispatchEvent(new Event('input', {bubbles: true}));
+                    el.dispatchEvent(new Event('change', {bubbles: true}));
+                }
+                results.push(name);
+            }
+            return results;
+        }
+    """, values)
+    return filled
+
+
+def action_smart_fill(page, args):
+    """Fill form fields from JSON string in --value."""
+    try:
+        values = json.loads(args.value)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON for smart-fill: {e}")
+    filled = smart_fill(page, values)
+    print(json.dumps({"filled": filled}, indent=2))
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -214,6 +259,7 @@ ACTIONS = {
     "eval": action_eval,
     "scroll": action_scroll,
     "form-detect": action_form_detect,
+    "smart-fill": action_smart_fill,
 }
 
 
