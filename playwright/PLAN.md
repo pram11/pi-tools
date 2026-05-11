@@ -32,7 +32,7 @@
 
 ## Phase 6: Advanced Patterns
 - [x] Shadow DOM piercing
-- [ ] iframe context switching
+- [x] iframe context switching
 - [ ] Dialog/alert interception
 - [ ] File upload automation
 - [ ] Auth flows — cookie injection, localStorage seeding

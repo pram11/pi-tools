@@ -849,6 +849,130 @@ def action_assert_url(page, args):
     print(f"[assert] expect-url passed: contains '{expected}'")
 
 
+# ── Phase 6: iframe Context Switching ────────────────────────────────
+
+
+def iframe_list(page) -> list[dict]:
+    """List all iframes on page with metadata."""
+    return page.evaluate("""
+        () => {
+            const frames = document.querySelectorAll('iframe');
+            return Array.from(frames).map(f => ({
+                name: f.id || f.name || '',
+                src: f.src || f.getAttribute('srcdoc') ? 'inline' : '',
+                visible: f.offsetParent !== null,
+                width: f.offsetWidth,
+                height: f.offsetHeight,
+            }));
+        }
+    """)
+
+
+def _frame_locator(page, iframe_selector: str):
+    """Get FrameLocator for iframe by CSS selector."""
+    fl = page.frame_locator(iframe_selector)
+    return fl
+
+
+def iframe_query(page, iframe_selector: str | None, inner_selector: str) -> str | None:
+    """One-liner: read text content from element inside iframe.
+
+    Args:
+        page: Playwright page.
+        iframe_selector: CSS selector for iframe, or None for main frame.
+        inner_selector: CSS selector inside the iframe.
+    """
+    if iframe_selector is None:
+        try:
+            return page.locator(inner_selector).inner_text(timeout=5000)
+        except Exception:
+            return None
+
+    fl = _frame_locator(page, iframe_selector)
+    try:
+        return fl.locator(inner_selector).inner_text(timeout=5000)
+    except Exception:
+        return None
+
+
+def iframe_click(page, iframe_selector: str, inner_selector: str) -> None:
+    """Click element inside iframe."""
+    fl = _frame_locator(page, iframe_selector)
+    fl.locator(inner_selector).click(timeout=5000)
+
+
+def iframe_fill(page, iframe_selector: str, inner_selector: str, text: str) -> None:
+    """Fill input inside iframe."""
+    fl = _frame_locator(page, iframe_selector)
+    fl.locator(inner_selector).fill(text, timeout=5000)
+
+
+def iframe_enter(page, iframe_selector: str) -> None:
+    """Enter iframe context for subsequent operations.
+    Stores frame_locator reference on page for chained ops.
+    """
+    fl = _frame_locator(page, iframe_selector)
+    page._active_fl = fl  # type: ignore[attr-defined]
+
+
+def iframe_exit(page) -> None:
+    """Exit iframe context, return to main frame."""
+    page._active_fl = None  # type: ignore[attr-defined]
+
+
+def iframe_extract(page, iframe_selector: str, inner_selector: str) -> str:
+    """Extract text from single element inside iframe."""
+    fl = _frame_locator(page, iframe_selector)
+    try:
+        return fl.locator(inner_selector).inner_text(timeout=5000)
+    except Exception:
+        return ""
+
+
+def iframe_multi_extract(page, iframe_selector: str, selector: str) -> list[str]:
+    """Extract text from multiple elements inside iframe."""
+    fl = _frame_locator(page, iframe_selector)
+    return fl.locator(selector).all_inner_texts()
+
+
+def action_iframe(page, args):
+    """CLI action: iframe operations."""
+    action_type = args.action
+
+    if action_type == "iframe-list":
+        frames = iframe_list(page)
+        print(json.dumps(frames, indent=2))
+
+    elif action_type == "iframe-query":
+        if not args.selector or not args.value:
+            raise ValueError("iframe-query: --selector (iframe) and --value (inner) required")
+        result = iframe_query(page, args.selector, args.value)
+        if result:
+            print(result)
+
+    elif action_type == "iframe-click":
+        if not args.selector or not args.value:
+            raise ValueError("iframe-click: --selector (iframe) and --value (inner) required")
+        iframe_click(page, args.selector, args.value)
+        print(f"[iframe] Clicked: {args.selector} → {args.value}")
+
+    elif action_type == "iframe-fill":
+        if not args.selector or not args.value:
+            raise ValueError("iframe-fill: --selector (iframe), --value (inner) and --output (text) required")
+        text = args.output or ""
+        iframe_fill(page, args.selector, args.value, text)
+        print(f"[iframe] Filled: {args.selector} → {args.value} = {text}")
+
+    elif action_type == "iframe-extract":
+        if not args.selector or not args.value:
+            raise ValueError("iframe-extract: --selector (iframe) and --value (inner) required")
+        result = iframe_extract(page, args.selector, args.value)
+        print(result)
+
+    else:
+        raise ValueError(f"Unknown iframe action: {action_type}")
+
+
 # ── Phase 6: Shadow DOM Piercing ──────────────────────────────────
 
 
@@ -1039,6 +1163,11 @@ ACTIONS = {
     "shadow-extract": action_shadow,
     "shadow-pierce": action_shadow,
     "shadow-detect": action_shadow,
+    "iframe-list": action_iframe,
+    "iframe-query": action_iframe,
+    "iframe-click": action_iframe,
+    "iframe-fill": action_iframe,
+    "iframe-extract": action_iframe,
 }
 
 
