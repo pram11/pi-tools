@@ -22,7 +22,7 @@
 - [x] Structured scraping — table rows → JSON/CSV
 - [x] Repeatable selectors — nth-child, recursive extraction
 - [x] Network interception — capture API responses, headers
-- [ ] PDF generation from page
+- [x] PDF generation from page
 
 ## Phase 5: Assertions & Testing
 - [ ] Built-in assertions: `expect-text`, `expect-visible`, `expect-url`
