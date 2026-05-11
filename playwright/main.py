@@ -1135,6 +1135,68 @@ def action_shadow(page, args):
         raise ValueError(f"Unknown shadow action: {action_type}")
 
 
+# ── Phase 6: File Upload Automation ──────────────────────────────
+
+
+def detect_upload_inputs(page) -> list[dict]:
+    """Find all file input elements on page."""
+    return page.evaluate("""
+        () => {
+            const inputs = document.querySelectorAll('input[type="file"]');
+            return Array.from(inputs).map(el => ({
+                name: el.name || '',
+                id: el.id || '',
+                accept: el.accept || '',
+                multiple: el.hasAttribute('multiple'),
+            }));
+        }
+    """)
+
+
+def upload_files(page, selector: str, *file_paths: str) -> dict:
+    """Upload file(s) to an <input type=\"file\"> element.
+
+    Args:
+        page: Playwright page.
+        selector: CSS selector for file input.
+        *file_paths: One or more absolute file paths.
+
+    Returns:
+        Dict with files_uploaded count and list of filenames.
+
+    Raises:
+        FileNotFoundError if any path does not exist.
+    """
+    for fp in file_paths:
+        if not os.path.exists(fp):
+            raise FileNotFoundError(f"Upload file not found: {fp}")
+
+    input_el = page.locator(selector)
+    input_el.wait_for(timeout=5000)
+    input_el.set_input_files(list(file_paths))
+
+    # Read back uploaded file names
+    uploaded = page.evaluate("""
+        (sel) => {
+            const el = document.querySelector(sel);
+            return el ? Array.from(el.files).map(f => f.name) : [];
+        }
+    """, selector)
+
+    return {"files_uploaded": len(uploaded), "files": uploaded}
+
+
+def action_upload(page, args):
+    """CLI action: upload file(s) or detect upload inputs."""
+    if args.action == "upload-detect":
+        inputs = detect_upload_inputs(page)
+        print(json.dumps(inputs, indent=2))
+    else:
+        paths = [p.strip() for p in args.value.split(",")]
+        result = upload_files(page, args.selector, *paths)
+        print(json.dumps(result, indent=2))
+
+
 # ── Phase 6: Dialog/Alert Interception ─────────────────────────────
 
 def dialog_intercept(
@@ -1242,6 +1304,8 @@ ACTIONS = {
     "dialog-accept": action_dialog,
     "dialog-dismiss": action_dialog,
     "dialog-prompt": action_dialog,
+    "upload": action_upload,
+    "upload-detect": action_upload,
 }
 
 
