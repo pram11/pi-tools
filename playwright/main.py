@@ -9,12 +9,14 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-# ── Session State (SQLite) ─────────────────────────────────────
-DB_PATH = Path(__file__).parent / ".sessions" / "state.db"
+# ── Session State (SQLite + storage_state JSON) ────────────────
+SESSIONS_DIR = Path(__file__).parent / ".sessions"
+DB_PATH = SESSIONS_DIR / "state.db"
+STORAGE_PATH = SESSIONS_DIR / "storage.json"
 
 
 def _get_conn() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(exist_ok=True)
+    SESSIONS_DIR.mkdir(exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH))
     conn.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
@@ -27,6 +29,14 @@ def _get_conn() -> sqlite3.Connection:
     """)
     conn.commit()
     return conn
+
+
+def session_active() -> bool:
+    """True if session DB row exists."""
+    conn = _get_conn()
+    row = conn.execute("SELECT 1 FROM sessions WHERE id = 1").fetchone()
+    conn.close()
+    return row is not None
 
 
 def load_session() -> dict | None:
@@ -49,11 +59,26 @@ def save_session(data: dict):
     conn.close()
 
 
+def save_storage_state(context):
+    """Export cookies + localStorage to JSON file for persistence."""
+    SESSIONS_DIR.mkdir(exist_ok=True)
+    context.storage_state(path=str(STORAGE_PATH))
+
+
+def load_storage_state():
+    """Return storage_state path if exists, else None."""
+    if STORAGE_PATH.exists():
+        return str(STORAGE_PATH)
+    return None
+
+
 def clear_session():
     conn = _get_conn()
     conn.execute("DELETE FROM sessions WHERE id = 1")
     conn.commit()
     conn.close()
+    if STORAGE_PATH.exists():
+        STORAGE_PATH.unlink()
 
 
 # ── Actions ─────────────────────────────────────────────────────
@@ -130,6 +155,7 @@ def session_start(args):
             "url": page.url,
             "title": page.title(),
         })
+        save_storage_state(context)
         print(f"[session] Started at: {page.url}")
 
 
@@ -172,7 +198,14 @@ def main():
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        page = browser.new_page()
+
+        # Restore persistent storage if session active
+        storage = load_storage_state()
+        if storage and session_active():
+            context = browser.new_context(storage_state=storage)
+        else:
+            context = browser.new_context()
+        page = context.new_page()
 
         # If no URL, try session state
         if args.url:
@@ -186,6 +219,9 @@ def main():
 
         try:
             ACTIONS[args.action](page, args)
+            # Persist storage after successful action
+            if session_active():
+                save_storage_state(context)
         except Exception as e:
             print(f"[error] {e}", file=sys.stderr)
             browser.close()

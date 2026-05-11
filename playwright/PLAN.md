@@ -7,9 +7,9 @@
 
 ## Phase 2: Session Mode
 - [x] SQLite-backed state (`.sessions/state.db`)
-- [ ] Persistent browser context across multiple invocations
-- [ ] Schema: `sessions` table — url, title, cookies (JSON), updated_at
-- [ ] Session lifecycle: `start`, `interact`, `stop`
+- [x] Persistent browser context across multiple invocations (storage_state JSON)
+- [x] Schema: `sessions` table — url, title, cookies (JSON), updated_at
+- [x] Session lifecycle: `start`, `interact`, `stop`
 - [ ] Auto-recovery on page crash / navigation timeout
 
 ## Phase 3: Form Automation
