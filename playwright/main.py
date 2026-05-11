@@ -81,6 +81,38 @@ def clear_session():
         STORAGE_PATH.unlink()
 
 
+# ── Phase 5: Assertions ─────────────────────────────────────────
+
+def assert_text(page, selector: str, expected: str) -> bool:
+    """Verify element text contains expected string. Raises AssertionError on mismatch."""
+    try:
+        text = (page.text_content(selector, timeout=5000) or "").strip()
+    except Exception:
+        raise AssertionError(f"expect-text failed: element {selector} not found")
+    if expected not in text:
+        raise AssertionError(f"expect-text failed on {selector}: expected '{expected}' in '{text}'")
+    return True
+
+
+def assert_visible(page, selector: str) -> bool:
+    """Verify element is visible. Raises AssertionError if hidden or missing."""
+    try:
+        el = page.wait_for_selector(selector, timeout=5000, state="visible")
+    except Exception:
+        raise AssertionError(f"expect-visible failed: {selector} not visible")
+    if el is None:
+        raise AssertionError(f"expect-visible failed: {selector} not found")
+    return True
+
+
+def assert_url(page, expected: str) -> bool:
+    """Verify page URL contains expected string. Raises AssertionError on mismatch."""
+    actual = page.url
+    if expected not in actual:
+        raise AssertionError(f"expect-url failed: expected '{expected}' in '{actual}'")
+    return True
+
+
 # ── Actions ─────────────────────────────────────────────────────
 
 def _retry_navigation(page, browser, context, url, timeout_ms, max_retries):
@@ -555,6 +587,25 @@ def action_wizard(page, args):
     print(json.dumps(result, indent=2))
 
 
+def action_assert_text(page, args):
+    """CLI: expect-text."""
+    assert_text(page, args.selector, args.value)
+    print(f"[assert] expect-text passed: {args.selector} contains '{args.value}'")
+
+
+def action_assert_visible(page, args):
+    """CLI: expect-visible."""
+    assert_visible(page, args.selector)
+    print(f"[assert] expect-visible passed: {args.selector}")
+
+
+def action_assert_url(page, args):
+    """CLI: expect-url."""
+    expected = args.value or args.url
+    assert_url(page, expected)
+    print(f"[assert] expect-url passed: contains '{expected}'")
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -572,6 +623,9 @@ ACTIONS = {
     "extract-all": action_extract_all,
     "network": action_network,
     "pdf": action_pdf,
+    "expect-text": action_assert_text,
+    "expect-visible": action_assert_visible,
+    "expect-url": action_assert_url,
 }
 
 
