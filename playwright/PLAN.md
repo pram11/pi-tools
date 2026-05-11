@@ -31,7 +31,7 @@
 - [x] Test report output (passed/failed summary)
 
 ## Phase 6: Advanced Patterns
-- [ ] Shadow DOM piercing
+- [x] Shadow DOM piercing
 - [ ] iframe context switching
 - [ ] Dialog/alert interception
 - [ ] File upload automation

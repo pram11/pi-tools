@@ -849,6 +849,168 @@ def action_assert_url(page, args):
     print(f"[assert] expect-url passed: contains '{expected}'")
 
 
+# ── Phase 6: Shadow DOM Piercing ──────────────────────────────────
+
+
+def shadow_query(page, host_selector: str, inner_selector: str) -> str | None:
+    """Query text content from element inside shadow DOM."""
+    result = page.evaluate("""
+        (params) => {
+            const host = document.querySelector(params.hostSel);
+            if (!host) return null;
+            const shadow = host.shadowRoot;
+            if (!shadow) return null;
+            const el = shadow.querySelector(params.innerSel);
+            return el ? el.textContent.trim() : null;
+        }
+    """, {"hostSel": host_selector, "innerSel": inner_selector})
+    return result
+
+
+def shadow_click(page, host_selector: str, inner_selector: str) -> None:
+    """Click element inside shadow DOM."""
+    page.evaluate("""
+        (params) => {
+            const host = document.querySelector(params.hostSel);
+            if (!host) throw new Error('Shadow host not found: ' + params.hostSel);
+            const shadow = host.shadowRoot;
+            if (!shadow) throw new Error('No shadow root on: ' + params.hostSel);
+            const el = shadow.querySelector(params.innerSel);
+            if (!el) throw new Error('Inner element not found: ' + params.innerSel);
+            el.click();
+        }
+    """, {"hostSel": host_selector, "innerSel": inner_selector})
+
+
+def shadow_fill(page, host_selector: str, inner_selector: str, text: str) -> None:
+    """Fill input/textarea inside shadow DOM."""
+    page.evaluate("""
+        (params) => {
+            const host = document.querySelector(params.hostSel);
+            if (!host) throw new Error('Shadow host not found: ' + params.hostSel);
+            const shadow = host.shadowRoot;
+            if (!shadow) throw new Error('No shadow root on: ' + params.hostSel);
+            const el = shadow.querySelector(params.innerSel);
+            if (!el) throw new Error('Inner element not found: ' + params.innerSel);
+            el.value = params.text;
+            el.dispatchEvent(new Event('input', {bubbles: true}));
+            el.dispatchEvent(new Event('change', {bubbles: true}));
+        }
+    """, {"hostSel": host_selector, "innerSel": inner_selector, "text": text})
+
+
+def shadow_extract_all(page, host_selector: str, inner_selector: str) -> list[str]:
+    """Extract text from matching inner elements across multiple shadow hosts."""
+    return page.evaluate("""
+        (params) => {
+            const hosts = document.querySelectorAll(params.hostSel);
+            const results = [];
+            for (const host of hosts) {
+                const shadow = host.shadowRoot;
+                if (!shadow) continue;
+                const el = shadow.querySelector(params.innerSel);
+                if (el) results.push(el.textContent.trim());
+            }
+            return results;
+        }
+    """, {"hostSel": host_selector, "innerSel": inner_selector})
+
+
+def shadow_pierce(page, chain: str) -> str | None:
+    """Pierce multiple shadow DOM levels via chained selector.
+
+    Syntax: '#host >> .level1 >> .deep-text'
+    Each segment after first is queried inside previous element's shadowRoot.
+    """
+    parts = [p.strip() for p in chain.split(">>")]
+    if not parts:
+        raise ValueError("shadow-pierce: empty selector chain")
+
+    try:
+        result = page.evaluate("""
+            (selectors) => {
+                let el = document.querySelector(selectors[0]);
+                if (!el) return null;
+                for (let i = 1; i < selectors.length; i++) {
+                    const shadow = el.shadowRoot;
+                    if (!shadow) {
+                        throw new Error('No shadow root at segment ' + i + ': ' + selectors[i-1]);
+                    }
+                    el = shadow.querySelector(selectors[i]);
+                    if (!el) {
+                        throw new Error('Element not found at segment ' + i + ': ' + selectors[i]);
+                    }
+                }
+                return el.textContent.trim();
+            }
+        """, parts)
+    except Exception as e:
+        raise ValueError(str(e))
+    return result
+
+
+def shadow_detect(page) -> list[dict]:
+    """Find all shadow hosts on the page."""
+    return page.evaluate("""
+        () => {
+            const all = document.querySelectorAll('*');
+            return Array.from(all)
+                .filter(el => el.shadowRoot)
+                .map(el => ({
+                    tag: el.tagName.toLowerCase(),
+                    id: el.id || '',
+                    classList: Array.from(el.classList || []),
+                    childCount: (el.shadowRoot && el.shadowRoot.children.length) || 0
+                }));
+        }
+    """)
+
+
+def action_shadow(page, args):
+    """CLI action: shadow DOM operations."""
+    action_type = args.action
+
+    if action_type == "shadow-detect":
+        hosts = shadow_detect(page)
+        print(json.dumps(hosts, indent=2))
+
+    elif action_type == "shadow-query":
+        if not args.selector or not args.value:
+            raise ValueError("shadow-query: --selector (host) and --value (inner) required")
+        result = shadow_query(page, args.selector, args.value)
+        if result:
+            print(result)
+
+    elif action_type == "shadow-click":
+        if not args.selector or not args.value:
+            raise ValueError("shadow-click: --selector (host) and --value (inner) required")
+        shadow_click(page, args.selector, args.value)
+        print(f"[shadow] Clicked: {args.selector} >> {args.value}")
+
+    elif action_type == "shadow-fill":
+        if not args.selector or not args.value:
+            raise ValueError("shadow-fill: --selector (host) and --value (inner) required")
+        text = args.output or ""
+        shadow_fill(page, args.selector, args.value, text)
+        print(f"[shadow] Filled: {args.selector} >> {args.value}")
+
+    elif action_type == "shadow-extract":
+        if not args.selector or not args.value:
+            raise ValueError("shadow-extract: --selector (host) and --value (inner) required")
+        results = shadow_extract_all(page, args.selector, args.value)
+        print(json.dumps(results, indent=2))
+
+    elif action_type == "shadow-pierce":
+        if not args.value:
+            raise ValueError("shadow-pierce: --value (chain) required")
+        result = shadow_pierce(page, args.value)
+        if result:
+            print(result)
+
+    else:
+        raise ValueError(f"Unknown shadow action: {action_type}")
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -871,6 +1033,12 @@ ACTIONS = {
     "expect-url": action_assert_url,
     "screenshot-diff": action_screenshot_diff,
     "report": action_report,
+    "shadow-query": action_shadow,
+    "shadow-click": action_shadow,
+    "shadow-fill": action_shadow,
+    "shadow-extract": action_shadow,
+    "shadow-pierce": action_shadow,
+    "shadow-detect": action_shadow,
 }
 
 
