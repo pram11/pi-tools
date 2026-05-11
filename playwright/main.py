@@ -178,6 +178,32 @@ def action_scroll(page, args):
     print(f"[scroll] Scrolled to: {val}")
 
 
+def detect_form_fields(page) -> list[dict]:
+    """Auto-detect form fields (input, textarea, select). Excludes submit/button."""
+    fields = page.evaluate("""
+        () => {
+            const nodes = document.querySelectorAll('input, textarea, select');
+            const skip = new Set(['submit', 'button', 'hidden', 'image']);
+            return Array.from(nodes)
+                .filter(n => !skip.has(n.type))
+                .map(n => ({
+                    tag: n.tagName.toLowerCase(),
+                    name: n.name || '',
+                    type: n.type || n.tagName.toLowerCase(),
+                    placeholder: n.placeholder || '',
+                    id: n.id || '',
+                    required: n.hasAttribute('required'),
+                }));
+        }
+    """)
+    return fields
+
+
+def action_form_detect(page, args):
+    fields = detect_form_fields(page)
+    print(json.dumps(fields, indent=2))
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -187,6 +213,7 @@ ACTIONS = {
     "wait": action_wait,
     "eval": action_eval,
     "scroll": action_scroll,
+    "form-detect": action_form_detect,
 }
 
 
