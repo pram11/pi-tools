@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 import time
@@ -80,6 +81,85 @@ def clear_session():
     conn.close()
     if STORAGE_PATH.exists():
         STORAGE_PATH.unlink()
+
+
+# ── Phase 5: Screenshot Diffing (Visual Regression) ────────────
+
+def diff_screenshots(
+    baseline_path: str,
+    actual_path: str,
+    *,
+    threshold: float = 0.95,
+    diff_path: str | None = None,
+) -> dict:
+    """Compare two screenshots pixel-by-pixel.
+
+    Args:
+        baseline_path: Path to expected/reference screenshot.
+        actual_path: Path to new/current screenshot.
+        threshold: Similarity ratio (0.0–1.0) for pass/fail. Default 0.95.
+        diff_path: Optional output path for diff image. Auto-generated if None.
+
+    Returns:
+        Dict with:
+            - similarity: float (0.0–1.0)
+            - match: bool (similarity >= threshold)
+            - diff_path: path to generated diff image
+            - diff_pixels: count of differing pixels
+    """
+    import numpy as np
+    from PIL import Image
+
+    if not os.path.exists(baseline_path):
+        raise ValueError(f"Baseline screenshot not found: {baseline_path}")
+    if not os.path.exists(actual_path):
+        raise ValueError(f"Actual screenshot not found: {actual_path}")
+
+    if diff_path is None:
+        import uuid
+        diff_path = f"screenshot_diff_{uuid.uuid4().hex[:8]}.png"
+
+    img_a = Image.open(baseline_path).convert("RGB")
+    img_b = Image.open(actual_path).convert("RGB")
+
+    # Resize to match if different sizes
+    sizes_match = img_a.size == img_b.size
+    if not sizes_match:
+        img_b = img_b.resize(img_a.size, Image.LANCZOS)
+
+    # Numpy array comparison (avoids PIL getdata deprecation)
+    arr_a = np.asarray(img_a)
+    arr_b = np.asarray(img_b)
+    diff_mask = arr_a != arr_b
+    total_pixels = arr_a.shape[0] * arr_a.shape[1]
+    diff_count = int(np.any(diff_mask, axis=2).sum())
+    similarity = 1.0 - (diff_count / total_pixels) if total_pixels else 1.0
+
+    # Generate diff image (red for diffs, black for matches)
+    diff_img = Image.new("RGB", img_a.size, (0, 0, 0))
+    diff_arr = np.array(np.asarray(diff_img))  # writable copy
+    diff_arr[np.any(diff_mask, axis=2)] = [255, 0, 0]
+    Image.fromarray(diff_arr).save(diff_path)
+
+    return {
+        "similarity": round(similarity, 4),
+        "match": similarity >= threshold,
+        "diff_path": diff_path,
+        "diff_pixels": diff_count,
+        "size_mismatch": not sizes_match,
+    }
+
+
+def action_screenshot_diff(page, args):
+    """CLI action: compare baseline vs actual screenshot."""
+    baseline = args.baseline
+    actual = args.output or "actual.png"
+    # Capture actual if file doesn't exist yet
+    if not os.path.exists(actual):
+        page.screenshot(path=actual, full_page=True)
+    threshold = float(args.value) if args.value else 0.95
+    result = diff_screenshots(baseline, actual, threshold=threshold)
+    print(json.dumps(result, indent=2))
 
 
 # ── Phase 5: Wait-for-Conditions ─────────────────────────────────
@@ -707,6 +787,7 @@ ACTIONS = {
     "expect-text": action_assert_text,
     "expect-visible": action_assert_visible,
     "expect-url": action_assert_url,
+    "screenshot-diff": action_screenshot_diff,
 }
 
 
@@ -749,6 +830,7 @@ def main():
     parser.add_argument("--selector", help="CSS selector")
     parser.add_argument("--value", help="Value (type/eval/wait)")
     parser.add_argument("--output", help="Output file (screenshot)")
+    parser.add_argument("--baseline", help="Baseline screenshot for diff comparison")
     parser.add_argument("--timeout", type=int, default=30000, help="Navigation timeout ms")
     parser.add_argument("--retries", type=int, default=1, help="Max retry attempts on crash/timeout")
     parser.add_argument("--nth", type=int, default=None, help="Nth item index (0-based) for extract-all")
