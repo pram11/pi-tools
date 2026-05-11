@@ -36,7 +36,7 @@
 - [x] Dialog/alert interception
 - [x] File upload automation
 - [x] Auth flows — cookie injection, localStorage seeding
-- [ ] Parallel pages — multi-tab orchestration
+- [x] Parallel pages — multi-tab orchestration
 
 ## Phase 7: Integration
 - [ ] Register in pi-mono skill registry

@@ -1425,6 +1425,168 @@ def action_auth_clear(page, args):
     print("[auth] Cleared all auth state")
 
 
+# ── Phase 6: Parallel Pages — Multi-Tab Orchestration ──────────
+
+
+def tabs_open(context, count: int = 3) -> list:
+    """Open multiple new pages (tabs) in the same context.
+
+    Args:
+        context: Playwright BrowserContext.
+        count: Number of tabs to open (default 3).
+
+    Returns:
+        List of Page objects.
+    """
+    pages = [context.new_page() for _ in range(count)]
+    print(f"[tabs] Opened {count} tab(s)")
+    return pages
+
+
+def tabs_list(context) -> list[dict]:
+    """List all open pages in context with metadata.
+
+    Returns:
+        List of dicts: {index, url, title}.
+    """
+    pages = context.pages
+    return [
+        {"index": i, "url": p.url, "title": p.title()}
+        for i, p in enumerate(pages)
+    ]
+
+
+def tabs_switch(context, index: int):
+    """Get page by 0-based index.
+
+    Args:
+        context: Playwright BrowserContext.
+        index: 0-based page index.
+
+    Returns:
+        Page at index.
+
+    Raises:
+        IndexError if index out of range.
+    """
+    pages = context.pages
+    if index < 0 or index >= len(pages):
+        raise IndexError(f"Tab index {index} out of range (0–{len(pages) - 1})")
+    return pages[index]
+
+
+def tabs_close(context, index: int) -> None:
+    """Close specific page by 0-based index.
+
+    Args:
+        context: Playwright BrowserContext.
+        index: 0-based page index.
+    """
+    pages = context.pages
+    if index < 0 or index >= len(pages):
+        raise IndexError(f"Tab index {index} out of range")
+    pages[index].close()
+    print(f"[tabs] Closed tab {index}")
+
+
+def tabs_close_all(context) -> None:
+    """Close all pages in context."""
+    for p in list(context.pages):
+        p.close()
+    print("[tabs] Closed all tabs")
+
+
+def tabs_broadcast(context, action: str, args_list: list) -> list:
+    """Run action on each tab with corresponding args.
+
+    Args:
+        context: Playwright BrowserContext.
+        action: Method name to call on each page (e.g. 'goto', 'inner_text', 'evaluate').
+        args_list: List of arg-tuples, one per tab.
+
+    Returns:
+        List of return values, one per tab.
+
+    Raises:
+        ValueError if len(args_list) != len(pages).
+    """
+    pages = context.pages
+    if len(args_list) != len(pages):
+        raise ValueError(f"broadcast: {len(args_list)} args for {len(pages)} tabs")
+    fn = getattr(pages[0], action) if action else None
+    results = []
+    for p, args in zip(pages, args_list):
+        method = getattr(p, action)
+        results.append(method(*args))
+    print(f"[tabs] Broadcast '{action}' to {len(pages)} tab(s)")
+    return results
+
+
+def tabs_gather(context, key_fn) -> list:
+    """Collect one value from each tab via key_fn.
+
+    Args:
+        context: Playwright BrowserContext.
+        key_fn: Callable(page) → value.
+
+    Returns:
+        List of values, one per tab.
+    """
+    return [key_fn(p) for p in context.pages]
+
+
+def action_tabs(page, args):
+    """CLI action: multi-tab orchestration."""
+    context = page.context
+    action_type = args.action
+
+    if action_type == "tabs-open":
+        count = int(args.value) if args.value else 3
+        pages = tabs_open(context, count=count)
+        print(json.dumps({"count": len(pages)}, indent=2))
+
+    elif action_type == "tabs-list":
+        result = tabs_list(context)
+        print(json.dumps(result, indent=2))
+
+    elif action_type == "tabs-switch":
+        index = int(args.value)
+        p = tabs_switch(context, index)
+        print(json.dumps({"url": p.url, "title": p.title(), "index": index}, indent=2))
+
+    elif action_type == "tabs-close":
+        index = int(args.value)
+        tabs_close(context, index)
+        print(f"[tabs] Closed tab {index}")
+
+    elif action_type == "tabs-close-all":
+        tabs_close_all(context)
+
+    elif action_type == "tabs-broadcast":
+        # --value is JSON: [{"action": "goto", "args": [url]}, ...]
+        try:
+            specs = json.loads(args.value)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"tabs-broadcast: invalid JSON: {e}")
+        actions = [s["action"] for s in specs]
+        arg_tuples = [tuple(s["args"]) for s in specs]
+        pages = context.pages
+        if len(arg_tuples) != len(pages):
+            raise ValueError(f"tabs-broadcast: {len(arg_tuples)} specs for {len(pages)} tabs")
+        results = []
+        for p, act, argz in zip(pages, actions, arg_tuples):
+            results.append(getattr(p, act)(*argz))
+        print(json.dumps(results, indent=2, default=str))
+
+    elif action_type == "tabs-gather":
+        # --value is a JS expression evaluated on each tab
+        results = tabs_gather(context, lambda p: p.evaluate(args.value))
+        print(json.dumps(results, indent=2, default=str))
+
+    else:
+        raise ValueError(f"Unknown tab action: {action_type}")
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -1465,6 +1627,13 @@ ACTIONS = {
     "upload-detect": action_upload,
     "auth-inject": action_auth_inject,
     "auth-clear": action_auth_clear,
+    "tabs-open": action_tabs,
+    "tabs-list": action_tabs,
+    "tabs-switch": action_tabs,
+    "tabs-close": action_tabs,
+    "tabs-close-all": action_tabs,
+    "tabs-broadcast": action_tabs,
+    "tabs-gather": action_tabs,
 }
 
 
