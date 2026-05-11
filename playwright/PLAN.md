@@ -34,7 +34,7 @@
 - [x] Shadow DOM piercing
 - [x] iframe context switching
 - [x] Dialog/alert interception
-- [ ] File upload automation
+- [x] File upload automation
 - [ ] Auth flows — cookie injection, localStorage seeding
 - [ ] Parallel pages — multi-tab orchestration
 
