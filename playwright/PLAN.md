@@ -35,7 +35,7 @@
 - [x] iframe context switching
 - [x] Dialog/alert interception
 - [x] File upload automation
-- [ ] Auth flows — cookie injection, localStorage seeding
+- [x] Auth flows — cookie injection, localStorage seeding
 - [ ] Parallel pages — multi-tab orchestration
 
 ## Phase 7: Integration

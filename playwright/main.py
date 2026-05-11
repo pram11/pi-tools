@@ -1268,6 +1268,163 @@ def action_dialog(page, args):
     print(f"[dialog] {action_type} handled")
 
 
+# ── Phase 6: Auth Flows ─────────────────────────────────────────
+
+
+def _extract_origin(url: str) -> str:
+    """Extract origin (scheme + host + port) from URL."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    origin = parsed.scheme + "://" + parsed.netloc
+    return origin
+
+
+def inject_cookies(context, cookies: list[dict], url: str):
+    """Add cookies to browser context before navigation.
+
+    Args:
+        context: Playwright BrowserContext.
+        cookies: List of dicts with name/value/domain/path.
+        url: Target URL (used to derive origin/domain).
+    """
+    origin = _extract_origin(url)
+    for cookie in cookies:
+        kwargs = {}
+        if "name" in cookie:
+            kwargs["name"] = cookie["name"]
+        if "value" in cookie:
+            kwargs["value"] = cookie["value"]
+        if "domain" in cookie:
+            kwargs["domain"] = cookie["domain"]
+        else:
+            # Derive domain from URL
+            from urllib.parse import urlparse
+            kwargs["domain"] = urlparse(url).netloc
+        if "path" in cookie:
+            kwargs["path"] = cookie["path"]
+        else:
+            kwargs["path"] = "/"
+        if "http_only" in cookie:
+            kwargs["http_only"] = cookie["http_only"]
+        if "secure" in cookie:
+            kwargs["secure"] = cookie["secure"]
+        if "same_site" in cookie:
+            kwargs["same_site"] = cookie["same_site"]
+        context.add_cookies([{**kwargs}])
+
+
+def seed_localstorage(context, data: dict, url: str):
+    """Seed localStorage values in context via add_init_script.
+
+    Args:
+        context: Playwright BrowserContext.
+        data: Dict of key→value pairs for localStorage.
+        url: Target URL (used to match origin in init_script).
+    """
+    if not data:
+        return
+    origin = _extract_origin(url)
+    sets = ";\n".join(
+        f"localStorage.setItem({json.dumps(k)}, {json.dumps(str(v))});"
+        for k, v in data.items()
+    )
+    script = f"""(function() {{
+        if (location.origin === {json.dumps(origin)}) {{
+            {sets}
+        }}
+    }})();"""
+    context.add_init_script(script=script)
+
+
+def seed_headers(context, headers: dict):
+    """Set extra HTTP headers on all requests.
+
+    Args:
+        context: Playwright BrowserContext.
+        headers: Dict of header_name→value.
+    """
+    if headers:
+        context.set_extra_http_headers(headers)
+
+
+def clear_auth(context, page):
+    """Clear all cookies and localStorage on context."""
+    context.clear_cookies()
+    page.evaluate("localStorage.clear()")
+
+
+def action_auth_inject(page, args):
+    """CLI action: inject auth state (cookies, localStorage, headers, or combined).
+
+    --output controls mode:
+      - "cookies" → parse --value as JSON array of cookie dicts
+      - "localStorage" → parse --value as JSON object {key: value}
+      - "headers" → parse --value as JSON object {header: value}
+      - (none/absent) → parse --value as combined JSON {cookies, localStorage, headers}
+    """
+    value = args.value
+    mode = args.output or ""
+    url = args.url
+
+    if not value:
+        raise ValueError("auth-inject: --value required (JSON)")
+    if not url:
+        raise ValueError("auth-inject: --url required")
+
+    try:
+        data = json.loads(value)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON for auth-inject: {e}")
+
+    # Reconstruct context from page to access context-level APIs
+    context = page.context
+
+    if mode == "cookies":
+        # data is list of cookie dicts
+        if not isinstance(data, list):
+            raise ValueError("auth-inject cookies: --value must be JSON array")
+        inject_cookies(context, data, url)
+        print(f"[auth] Injected {len(data)} cookie(s)")
+
+    elif mode == "localStorage":
+        # data is {key: value}
+        if not isinstance(data, dict):
+            raise ValueError("auth-inject localStorage: --value must be JSON object")
+        seed_localstorage(context, data, url)
+        print(f"[auth] Seeded {len(data)} localStorage key(s)")
+
+    elif mode == "headers":
+        # data is {header: value}
+        if not isinstance(data, dict):
+            raise ValueError("auth-inject headers: --value must be JSON object")
+        seed_headers(context, data)
+        print(f"[auth] Set {len(data)} extra HTTP header(s)")
+
+    else:
+        # Combined mode: {cookies, localStorage, headers}
+        if isinstance(data, dict):
+            if "cookies" in data:
+                inject_cookies(context, data["cookies"], url)
+                print(f"[auth] Injected {len(data['cookies'])} cookie(s)")
+            if "localStorage" in data:
+                seed_localstorage(context, data["localStorage"], url)
+                print(f"[auth] Seeded {len(data['localStorage'])} localStorage key(s)")
+            if "headers" in data:
+                seed_headers(context, data["headers"])
+                print(f"[auth] Set {len(data['headers'])} extra HTTP header(s)")
+        else:
+            # Fallback: treat as cookies array for backwards compat
+            inject_cookies(context, data, url)
+            print(f"[auth] Injected {len(data)} cookie(s)")
+
+
+def action_auth_clear(page, args):
+    """CLI action: clear all auth state (cookies + localStorage)."""
+    context = page.context
+    clear_auth(context, page)
+    print("[auth] Cleared all auth state")
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -1306,6 +1463,8 @@ ACTIONS = {
     "dialog-prompt": action_dialog,
     "upload": action_upload,
     "upload-detect": action_upload,
+    "auth-inject": action_auth_inject,
+    "auth-clear": action_auth_clear,
 }
 
 
@@ -1392,6 +1551,46 @@ def main():
                 print(f"[error] {e}", file=sys.stderr)
                 browser.close()
                 sys.exit(1)
+        elif args.action == "auth-inject":
+            # Inject into context, then navigate (init_scripts run → localStorage populated)
+            target_url = args.url or (load_session() or {}).get("url")
+            if not target_url:
+                print("[error] No URL provided and no active session", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            try:
+                ACTIONS[args.action](page, args)
+            except Exception as e:
+                print(f"[error] {e}", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            if not _retry_navigation(page, browser, context, target_url, args.timeout, args.retries):
+                print(f"[error] Navigation failed after {args.retries} attempt(s)", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            if session_active():
+                save_storage_state(context)
+
+        elif args.action == "auth-clear":
+            # Navigate first, then clear
+            target_url = args.url or (load_session() or {}).get("url")
+            if not target_url:
+                print("[error] No URL provided and no active session", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            if not _retry_navigation(page, browser, context, target_url, args.timeout, args.retries):
+                print(f"[error] Navigation failed after {args.retries} attempt(s)", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            try:
+                ACTIONS[args.action](page, args)
+            except Exception as e:
+                print(f"[error] {e}", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            if session_active():
+                save_storage_state(context)
+
         else:
             target_url = args.url or (load_session() or {}).get("url")
             if not target_url:
