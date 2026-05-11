@@ -21,7 +21,7 @@
 ## Phase 4: Data Extraction
 - [x] Structured scraping — table rows → JSON/CSV
 - [x] Repeatable selectors — nth-child, recursive extraction
-- [ ] Network interception — capture API responses, headers
+- [x] Network interception — capture API responses, headers
 - [ ] PDF generation from page
 
 ## Phase 5: Assertions & Testing

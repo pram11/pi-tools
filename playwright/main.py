@@ -178,6 +178,42 @@ def action_scroll(page, args):
     print(f"[scroll] Scrolled to: {val}")
 
 
+# ── Phase 4: Network Interception ─────────────────────────────
+
+def capture_network(page, url: str) -> list[dict]:
+    """Navigate to URL, capture all network responses.
+
+    Returns list of dicts: {url, status, headers, body}
+    """
+    captured = []
+
+    def _on_response(response):
+        try:
+            body = response.text()
+        except Exception:
+            body = ""
+        captured.append({
+            "url": response.url,
+            "status": response.status,
+            "headers": response.headers,
+            "body": body,
+        })
+
+    page.on("response", _on_response)
+    page.goto(url, wait_until="networkidle", timeout=30000)
+    page.remove_listener("response", _on_response)
+    return captured
+
+
+def action_network(page, args, browser=None, context=None):
+    """CLI action: capture network responses during page load."""
+    url = args.url
+    if not url:
+        raise ValueError("--url required for network capture")
+    responses = capture_network(page, url)
+    print(json.dumps(responses, indent=2, default=str))
+
+
 # ── Phase 4: Data Extraction ──────────────────────────────────
 
 def scrape_table(page, selector: str, fmt: str = "json") -> list | str:
@@ -479,6 +515,7 @@ ACTIONS = {
     "wizard": action_wizard,
     "scrape": action_scrape,
     "extract-all": action_extract_all,
+    "network": action_network,
 }
 
 
@@ -553,6 +590,13 @@ def main():
         if args.action == "navigate":
             try:
                 page = action_navigate_retry(page, browser, context, args)
+            except Exception as e:
+                print(f"[error] {e}", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+        elif args.action == "network":
+            try:
+                action_network(page, args, browser=browser, context=context)
             except Exception as e:
                 print(f"[error] {e}", file=sys.stderr)
                 browser.close()
