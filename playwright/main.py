@@ -5,6 +5,7 @@ import argparse
 import json
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -79,6 +80,86 @@ def clear_session():
     conn.close()
     if STORAGE_PATH.exists():
         STORAGE_PATH.unlink()
+
+
+# ── Phase 5: Wait-for-Conditions ─────────────────────────────────
+
+def wait_network_idle(page, idle_timeout: int = 1000) -> bool:
+    """Block until no network requests for idle_timeout ms.
+
+    Args:
+        page: Playwright page.
+        idle_timeout: Milliseconds of idle to wait (default 1000).
+
+    Returns:
+        True when idle.
+
+    Raises:
+        TimeoutError if idle never achieved within page timeout.
+    """
+    page.wait_for_load_state("networkidle", timeout=idle_timeout + 5000)  # type: ignore
+    return True
+
+
+def wait_element_state(page, selector: str, state: str, timeout: int = 5000) -> bool:
+    """Block until element reaches specified state.
+
+    Args:
+        page: Playwright page.
+        selector: CSS selector.
+        state: One of 'visible', 'hidden', 'attached', 'detached'.
+        timeout: Max wait in ms.
+
+    Returns:
+        True when state achieved.
+
+    Raises:
+        Exception on timeout.
+    """
+    valid_states = ("visible", "hidden", "attached", "detached")
+    if state not in valid_states:
+        raise ValueError(f"wait-element-state: invalid state '{state}'. Must be one of {valid_states}")
+    page.wait_for_selector(selector, state=state, timeout=timeout)
+    return True
+
+
+def wait_http_status(page, expected_status: int, timeout: int = 5000, url: str | None = None) -> bool:
+    """Block until a response with expected HTTP status is received.
+
+    Args:
+        page: Playwright page.
+        expected_status: HTTP status code to wait for.
+        timeout: Max wait in ms.
+        url: Optional URL to navigate to (listener attached before nav).
+
+    Returns:
+        True when status matched.
+
+    Raises:
+        TimeoutError if status never received within timeout.
+    """
+    matched = False
+
+    def _on_response(response):
+        nonlocal matched
+        if response.status == expected_status:
+            matched = True
+
+    page.on("response", _on_response)
+
+    # Navigate if url provided (listener already attached)
+    if url:
+        page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+
+    deadline = time.time() + timeout / 1000
+    while time.time() < deadline:
+        if matched:
+            page.remove_listener("response", _on_response)
+            return True
+        time.sleep(0.05)
+
+    page.remove_listener("response", _on_response)
+    raise TimeoutError(f"wait-http-status: expected {expected_status}, never received within {timeout}ms")
 
 
 # ── Phase 5: Assertions ─────────────────────────────────────────
