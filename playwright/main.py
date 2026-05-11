@@ -178,6 +178,68 @@ def action_scroll(page, args):
     print(f"[scroll] Scrolled to: {val}")
 
 
+# ── Phase 4: Data Extraction ──────────────────────────────────
+
+def scrape_table(page, selector: str, fmt: str = "json") -> list | str:
+    """Scrape HTML table into structured data.
+
+    Args:
+        page: Playwright page.
+        selector: CSS selector targeting the <table>.
+        fmt: "json" (list[dict]) or "csv" (string).
+
+    Returns:
+        list of dicts (json) or CSV string.
+    """
+    result = page.evaluate("""
+        (selector) => {
+            const table = document.querySelector(selector);
+            if (!table) return [];
+
+            const thead = table.querySelector('thead tr');
+            const headers = thead
+                ? Array.from(thead.querySelectorAll('th, td')).map(h => h.textContent.trim())
+                : [];
+
+            const rows = Array.from(table.querySelectorAll('tbody tr, tr'))
+                .filter(tr => !thead || !thead.contains(tr));
+
+            return rows.map((tr, idx) => {
+                const cells = Array.from(tr.querySelectorAll('td, th')).map(c => c.textContent.trim());
+                if (headers.length) {
+                    const obj = {};
+                    headers.forEach((h, i) => obj[h] = cells[i] || '');
+                    return obj;
+                } else {
+                    const obj = {};
+                    cells.forEach((c, i) => obj[`col_${i + 1}`] = c);
+                    return obj;
+                }
+            });
+        }
+    """, selector)
+
+    if fmt == "csv" and result:
+        import csv, io
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=result[0].keys(), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(result)
+        return output.getvalue()
+
+    return result
+
+
+def action_scrape(page, args):
+    """CLI action: scrape table → JSON/CSV."""
+    fmt = args.value or "json"
+    result = scrape_table(page, args.selector, fmt=fmt)
+    if isinstance(result, str):
+        print(result, end="")
+    else:
+        print(json.dumps(result, indent=2))
+
+
 def detect_form_fields(page) -> list[dict]:
     """Auto-detect form fields (input, textarea, select). Excludes submit/button."""
     fields = page.evaluate("""
@@ -353,6 +415,7 @@ ACTIONS = {
     "smart-fill": action_smart_fill,
     "submit": action_submit,
     "wizard": action_wizard,
+    "scrape": action_scrape,
 }
 
 

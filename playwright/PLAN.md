@@ -19,7 +19,7 @@
 - [x] Multi-step form support (wizard flows)
 
 ## Phase 4: Data Extraction
-- [ ] Structured scraping — table rows → JSON/CSV
+- [x] Structured scraping — table rows → JSON/CSV
 - [ ] Repeatable selectors — nth-child, recursive extraction
 - [ ] Network interception — capture API responses, headers
 - [ ] PDF generation from page
