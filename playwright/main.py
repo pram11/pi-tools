@@ -83,9 +83,56 @@ def clear_session():
 
 # ── Actions ─────────────────────────────────────────────────────
 
+def _retry_navigation(page, browser, context, url, timeout_ms, max_retries):
+    """Navigate with auto-recovery on timeout/crash. Returns True on success."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+            return True
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "timeout" in err_msg or "crash" in err_msg or "closed" in err_msg:
+                if attempt < max_retries:
+                    print(f"[recovery] Attempt {attempt} failed: {e}", file=sys.stderr)
+                    # recreate page from context for recovery
+                    try:
+                        page.close()
+                    except Exception:
+                        pass
+                    page = context.new_page()
+                    continue
+            raise
+    return False
+
+
 def action_navigate(page, args):
-    page.goto(args.url, wait_until="domcontentloaded")
+    page.goto(args.url, wait_until="domcontentloaded", timeout=args.timeout)
     print(f"[navigate] Loaded: {page.url}")
+
+
+def action_navigate_retry(page, browser, context, args):
+    """Navigate with auto-recovery. Replaces page if crash/timeout."""
+    url = args.url or (load_session() or {}).get("url", "")
+    if not url:
+        raise ValueError("No URL for navigation")
+    for attempt in range(1, args.retries + 1):
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=args.timeout)
+            print(f"[navigate] Loaded: {page.url}")
+            return page
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "timeout" in err_msg or "crash" in err_msg or "closed" in err_msg:
+                if attempt < args.retries:
+                    print(f"[recovery] Attempt {attempt} failed: {e}", file=sys.stderr)
+                    try:
+                        page.close()
+                    except Exception:
+                        pass
+                    page = context.new_page()
+                    continue
+            raise
+    raise RuntimeError(f"Navigation failed after {args.retries} attempt(s)")
 
 
 def action_click(page, args):
@@ -182,6 +229,8 @@ def main():
     parser.add_argument("--selector", help="CSS selector")
     parser.add_argument("--value", help="Value (type/eval/wait)")
     parser.add_argument("--output", help="Output file (screenshot)")
+    parser.add_argument("--timeout", type=int, default=30000, help="Navigation timeout ms")
+    parser.add_argument("--retries", type=int, default=1, help="Max retry attempts on crash/timeout")
 
     args = parser.parse_args()
 
@@ -207,25 +256,34 @@ def main():
             context = browser.new_context()
         page = context.new_page()
 
-        # If no URL, try session state
-        if args.url:
-            page.goto(args.url, wait_until="domcontentloaded")
-        elif args.action != "navigate" and load_session():
-            page.goto(load_session()["url"], wait_until="domcontentloaded")
-        elif not args.url and args.action != "navigate":
-            print("[error] No URL provided and no active session", file=sys.stderr)
-            browser.close()
-            sys.exit(1)
+        # Navigate with auto-recovery
+        if args.action == "navigate":
+            try:
+                page = action_navigate_retry(page, browser, context, args)
+            except Exception as e:
+                print(f"[error] {e}", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+        else:
+            target_url = args.url or (load_session() or {}).get("url")
+            if not target_url:
+                print("[error] No URL provided and no active session", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            if not _retry_navigation(page, browser, context, target_url, args.timeout, args.retries):
+                print(f"[error] Navigation failed after {args.retries} attempt(s)", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
 
-        try:
-            ACTIONS[args.action](page, args)
-            # Persist storage after successful action
-            if session_active():
-                save_storage_state(context)
-        except Exception as e:
-            print(f"[error] {e}", file=sys.stderr)
-            browser.close()
-            sys.exit(1)
+            try:
+                ACTIONS[args.action](page, args)
+                # Persist storage after successful action
+                if session_active():
+                    save_storage_state(context)
+            except Exception as e:
+                print(f"[error] {e}", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
 
         browser.close()
 

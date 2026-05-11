@@ -10,7 +10,7 @@
 - [x] Persistent browser context across multiple invocations (storage_state JSON)
 - [x] Schema: `sessions` table — url, title, cookies (JSON), updated_at
 - [x] Session lifecycle: `start`, `interact`, `stop`
-- [ ] Auto-recovery on page crash / navigation timeout
+- [x] Auto-recovery on page crash / navigation timeout
 
 ## Phase 3: Form Automation
 - [ ] Auto-detect form fields (input, textarea, select)
