@@ -205,6 +205,61 @@ def capture_network(page, url: str) -> list[dict]:
     return captured
 
 
+# ── Phase 4: PDF Generation ──────────────────────────────
+
+def generate_pdf(
+    page,
+    out_path: str,
+    *,
+    format: str | None = None,
+    print_background: bool = False,
+    margin: dict | None = None,
+    page_range: dict | None = None,
+    scale: float = 1.0,
+) -> str:
+    """Generate PDF from current page.
+
+    Args:
+        page: Playwright page.
+        out_path: Output file path (auto-appends .pdf if missing).
+        format: Paper format (A4, Letter, Legal, etc.).
+        print_background: Include background graphics.
+        margin: Dict with top, right, bottom, left (e.g. {"top": "1cm"}).
+        page_range: Dict with from/to (1-based) page numbers.
+        scale: Scale factor (0.1–2.0).
+
+    Returns:
+        Path to generated PDF file.
+    """
+    # Auto-append .pdf extension
+    if not out_path.lower().endswith(".pdf"):
+        out_path = out_path + ".pdf"
+
+    opts = {}
+    if format:
+        opts["format"] = format
+    if print_background:
+        opts["print_background"] = True
+    if margin:
+        opts["margin"] = margin
+    if page_range:
+        f = page_range.get("from", 0) + 1  # 0→1-based
+        t = page_range.get("to", 0) + 1
+        opts["page_ranges"] = f"{f}-{t}"
+    if scale != 1.0:
+        opts["scale"] = scale
+
+    page.pdf(path=out_path, **opts)
+    return out_path
+
+
+def action_pdf(page, args):
+    """CLI action: generate PDF from current page."""
+    output = args.output or "output.pdf"
+    result = generate_pdf(page, output)
+    print(f"[pdf] Generated: {result}")
+
+
 def action_network(page, args, browser=None, context=None):
     """CLI action: capture network responses during page load."""
     url = args.url
@@ -516,6 +571,7 @@ ACTIONS = {
     "scrape": action_scrape,
     "extract-all": action_extract_all,
     "network": action_network,
+    "pdf": action_pdf,
 }
 
 
