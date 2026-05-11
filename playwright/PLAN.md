@@ -40,6 +40,6 @@
 
 ## Phase 7: Integration
 - [ ] Register in pi-mono skill registry
-- [ ] Add unit tests for CLI actions
-- [ ] Add e2e smoke test (navigate → click → extract → screenshot)
+- [x] Add unit tests for CLI actions
+- [x] Add e2e smoke test (navigate → click → extract → screenshot)
 - [ ] Document in skill catalog
