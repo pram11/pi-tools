@@ -274,6 +274,88 @@ def assert_url(page, expected: str) -> bool:
     return True
 
 
+# ── Phase 5: Test Report ──────────────────────────────────────────
+
+class AssertionReport:
+    """Accumulates assertion results, produces pass/fail summary."""
+
+    def __init__(self):
+        self.results: list[dict] = []
+
+    @property
+    def passed(self) -> int:
+        return sum(1 for r in self.results if r["status"] == "PASS")
+
+    @property
+    def failed(self) -> int:
+        return sum(1 for r in self.results if r["status"] == "FAIL")
+
+    def total(self) -> int:
+        return len(self.results)
+
+    def record(self, assertion_type: str, selector: str, value: str, ok: bool, error: str = ""):
+        self.results.append({
+            "assertion": assertion_type,
+            "selector": selector,
+            "value": value,
+            "status": "PASS" if ok else "FAIL",
+            "error": error,
+        })
+
+    def summary(self) -> dict:
+        return {"total": self.total(), "passed": self.passed, "failed": self.failed}
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {**self.summary(), "results": self.results}, indent=2
+        )
+
+    def to_text(self) -> str:
+        lines = [f"{self.passed} passed, {self.failed} failed ({self.total()} total)"]
+        for r in self.results:
+            status = "✅" if r["status"] == "PASS" else "❌"
+            line = f"  {status} {r['assertion']} | {r['selector']} | {r['value']}"
+            if r["error"]:
+                line += f" — {r['error']}"
+            lines.append(line)
+        return "\n".join(lines)
+
+
+def run_assertions(page, specs: list[dict]) -> AssertionReport:
+    """Batch assertion runner. Each spec: {type, selector, value}.
+
+    Returns AssertionReport with accumulated results.
+    """
+    report = AssertionReport()
+    dispatch = {
+        "expect-text": lambda s: (assert_text(page, s["selector"], s["value"]), s["selector"], s["value"]),
+        "expect-visible": lambda s: (assert_visible(page, s["selector"]), s["selector"], "visible"),
+        "expect-url": lambda s: (assert_url(page, s["value"]), "url", s["value"]),
+    }
+    for spec in specs:
+        atype = spec["type"]
+        try:
+            fn = dispatch[atype]
+            fn(spec)  # raises on fail
+            report.record(atype, spec.get("selector", ""), spec.get("value", ""), True)
+        except (AssertionError, KeyError) as e:
+            report.record(atype, spec.get("selector", ""), spec.get("value", ""), False, str(e))
+    return report
+
+
+def action_report(page, args):
+    """CLI: run batch assertions, output report (JSON or text)."""
+    try:
+        specs = json.loads(args.value)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON for report specs: {e}")
+    report = run_assertions(page, specs)
+    if args.output and args.output.lower().endswith(".json"):
+        print(report.to_json())
+    else:
+        print(report.to_text())
+
+
 # ── Actions ─────────────────────────────────────────────────────
 
 def _retry_navigation(page, browser, context, url, timeout_ms, max_retries):
@@ -788,6 +870,7 @@ ACTIONS = {
     "expect-visible": action_assert_visible,
     "expect-url": action_assert_url,
     "screenshot-diff": action_screenshot_diff,
+    "report": action_report,
 }
 
 

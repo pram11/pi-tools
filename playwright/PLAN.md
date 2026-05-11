@@ -28,7 +28,7 @@
 - [x] Built-in assertions: `expect-text`, `expect-visible`, `expect-url`
 - [x] Wait-for-conditions: network idle, element state, HTTP status
 - [x] Screenshot diffing — visual regression detection
-- [ ] Test report output (passed/failed summary)
+- [x] Test report output (passed/failed summary)
 
 ## Phase 6: Advanced Patterns
 - [ ] Shadow DOM piercing
