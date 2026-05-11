@@ -15,7 +15,7 @@
 ## Phase 3: Form Automation
 - [x] Auto-detect form fields (input, textarea, select)
 - [x] Smart fill — map field names to values from JSON input
-- [ ] Submit handling — detect form submission + wait for response
+- [x] Submit handling — detect form submission + wait for response
 - [ ] Multi-step form support (wizard flows)
 
 ## Phase 4: Data Extraction

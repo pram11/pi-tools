@@ -249,6 +249,39 @@ def action_smart_fill(page, args):
     print(json.dumps({"filled": filled}, indent=2))
 
 
+def form_submit(page, selector: str = None, timeout: int = 30000) -> dict:
+    """Submit form by clicking button or form element.
+    Waits for navigation/response after submission.
+    Returns dict with url after submit."""
+    if not selector:
+        selector = "input[type=submit], button[type=submit]"
+
+    # Determine if selector is a form element or submit button
+    is_form = page.eval_on_selector(selector, "el => el.tagName === 'FORM'")
+
+    if is_form:
+        # Submit form element directly
+        page.eval_on_selector(selector, "el => el.submit()")
+    else:
+        # Click submit button/input
+        page.click(selector, timeout=timeout)
+
+    # Wait for navigation or load event
+    try:
+        page.wait_for_load_state("load", timeout=timeout)
+    except Exception:
+        pass  # Navigation may not occur if form uses AJAX
+
+    return {"url": page.url}
+
+
+def action_submit(page, args):
+    """CLI action for form submit."""
+    selector = args.selector or "input[type=submit], button[type=submit]"
+    result = form_submit(page, selector=selector, timeout=args.timeout)
+    print(json.dumps(result, indent=2))
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -260,6 +293,7 @@ ACTIONS = {
     "scroll": action_scroll,
     "form-detect": action_form_detect,
     "smart-fill": action_smart_fill,
+    "submit": action_submit,
 }
 
 
