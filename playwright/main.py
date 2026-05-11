@@ -282,6 +282,64 @@ def action_submit(page, args):
     print(json.dumps(result, indent=2))
 
 
+def wizard_fill(page, steps: list[dict], next_selector: str = ".next, button.next, [data-step-next]", timeout: int = 30000) -> dict:
+    """Fill multi-step wizard form.
+
+    Each step: {"fields": {name: val, ...}, "next": selector_or_None, "submit": bool}
+    Fills fields, clicks next (or submit), repeats.
+    Returns {"steps_filled": int, "submitted": bool}.
+    """
+    steps_filled = 0
+    submitted = False
+
+    for step in steps:
+        fields = step.get("fields", {})
+        if fields:
+            smart_fill(page, fields)
+
+        is_submit = step.get("submit", False)
+        if is_submit:
+            submit_sel = step.get("next", "input[type=submit], button[type=submit]")
+            try:
+                page.locator(submit_sel).filter(visible=True).first.click(timeout=timeout)
+            except Exception:
+                page.eval_on_selector("form", "el => el.submit()")
+            submitted = True
+            steps_filled += 1
+            break
+
+        nxt = step.get("next", next_selector)
+        if nxt:
+            # Use JS dispatch to click visible element (handles hidden sibling buttons)
+            page.evaluate("""
+                (sel) => {
+                    const els = document.querySelectorAll(sel);
+                    for (const el of els) {
+                        const r = el.getBoundingClientRect();
+                        if (r.width > 0 || r.height > 0) {
+                            el.click();
+                            return;
+                        }
+                    }
+                    throw new Error('No visible element: ' + sel);
+                }
+            """, nxt)
+        steps_filled += 1
+
+    return {"steps_filled": steps_filled, "submitted": submitted}
+
+
+def action_wizard(page, args):
+    """CLI action for wizard multi-step form fill."""
+    try:
+        steps = json.loads(args.value)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON for wizard steps: {e}")
+    next_sel = args.selector or ".next, button.next, [data-step-next]"
+    result = wizard_fill(page, steps, next_selector=next_sel, timeout=args.timeout)
+    print(json.dumps(result, indent=2))
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -294,6 +352,7 @@ ACTIONS = {
     "form-detect": action_form_detect,
     "smart-fill": action_smart_fill,
     "submit": action_submit,
+    "wizard": action_wizard,
 }
 
 
