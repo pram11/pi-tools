@@ -25,8 +25,8 @@
 - [x] PDF generation from page
 
 ## Phase 5: Assertions & Testing
-- [ ] Built-in assertions: `expect-text`, `expect-visible`, `expect-url`
-- [ ] Wait-for-conditions: network idle, element state, HTTP status
+- [x] Built-in assertions: `expect-text`, `expect-visible`, `expect-url`
+- [x] Wait-for-conditions: network idle, element state, HTTP status
 - [ ] Screenshot diffing — visual regression detection
 - [ ] Test report output (passed/failed summary)
 
