@@ -1135,6 +1135,77 @@ def action_shadow(page, args):
         raise ValueError(f"Unknown shadow action: {action_type}")
 
 
+# ── Phase 6: Dialog/Alert Interception ─────────────────────────────
+
+def dialog_intercept(
+    page,
+    mode: str = "accept",
+    prompt_text: str | None = None,
+    callback=None,
+) -> None:
+    """Register dialog interceptor on page.
+
+    Args:
+        page: Playwright page.
+        mode: "accept" or "dismiss".
+        prompt_text: Text to send to prompt() dialogs when accepting.
+        callback: Optional callable(dialog) invoked on each dialog.
+
+    Dialog is auto-handled via handler. Supports alert, confirm, prompt.
+    """
+
+    def _handler(dialog):
+        if callback:
+            callback(dialog)
+        if mode == "accept":
+            if dialog.type == "prompt":
+                # Use provided text, or fall back to dialog default value
+                dialog.accept(prompt_text if prompt_text is not None else dialog.default_value)
+            else:
+                dialog.accept()
+        elif mode == "dismiss":
+            dialog.dismiss()
+        else:
+            dialog.dismiss()
+
+    page.on("dialog", _handler)
+
+
+def dialog_auto_accept(page, callback=None) -> None:
+    """Shorthand: accept all dialogs on page."""
+    dialog_intercept(page, mode="accept", callback=callback)
+
+
+def dialog_auto_dismiss(page, callback=None) -> None:
+    """Shorthand: dismiss all dialogs on page."""
+    dialog_intercept(page, mode="dismiss", callback=callback)
+
+
+def action_dialog(page, args):
+    """CLI action: dialog interception + trigger.
+
+    action: dialog-accept, dialog-dismiss, dialog-prompt
+    --selector: element to click that triggers dialog
+    --value: text for prompt (dialog-prompt only)
+    """
+    action_type = args.action
+
+    if action_type == "dialog-accept":
+        dialog_auto_accept(page)
+    elif action_type == "dialog-dismiss":
+        dialog_auto_dismiss(page)
+    elif action_type == "dialog-prompt":
+        dialog_intercept(page, mode="accept", prompt_text=args.value or "")
+    else:
+        raise ValueError(f"Unknown dialog action: {action_type}")
+
+    # Trigger dialog via selector click
+    if args.selector:
+        page.click(args.selector, timeout=args.timeout)
+
+    print(f"[dialog] {action_type} handled")
+
+
 ACTIONS = {
     "navigate": action_navigate,
     "click": action_click,
@@ -1168,6 +1239,9 @@ ACTIONS = {
     "iframe-click": action_iframe,
     "iframe-fill": action_iframe,
     "iframe-extract": action_iframe,
+    "dialog-accept": action_dialog,
+    "dialog-dismiss": action_dialog,
+    "dialog-prompt": action_dialog,
 }
 
 
