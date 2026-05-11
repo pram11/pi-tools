@@ -220,7 +220,8 @@ def scrape_table(page, selector: str, fmt: str = "json") -> list | str:
     """, selector)
 
     if fmt == "csv" and result:
-        import csv, io
+        import csv
+        import io
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=result[0].keys(), lineterminator="\n")
         writer.writeheader()
@@ -238,6 +239,67 @@ def action_scrape(page, args):
         print(result, end="")
     else:
         print(json.dumps(result, indent=2))
+
+
+def extract_all(page, parent_selector: str, child: str | dict, nth: int = None) -> list:
+    """Repeatable / recursive extraction from repeated DOM blocks.
+
+    Args:
+        page: Playwright page.
+        parent_selector: CSS selector for repeated container elements.
+        child: CSS sub-selector (str) for flat extraction, or dict mapping
+               {selector: key_name} for recursive (nested) extraction.
+        nth: Optional 0-based index to extract only one item.
+
+    Returns:
+        List of strings (flat) or list of dicts (recursive).
+    """
+    if isinstance(child, dict):
+        # Recursive: extract multiple sub-fields per parent
+        result = page.evaluate("""
+            (params) => {
+                const parents = document.querySelectorAll(params.parentSel);
+                return Array.from(parents).map(el => {
+                    const obj = {};
+                    for (const [sel, key] of Object.entries(params.childMap)) {
+                        const found = el.querySelector(sel);
+                        obj[key] = found ? found.textContent.trim() : '';
+                    }
+                    return obj;
+                });
+            }
+        """, {"parentSel": parent_selector, "childMap": child})
+    else:
+        # Flat: extract all matching sub-elements across parent blocks
+        result = page.evaluate("""
+            (params) => {
+                const parents = document.querySelectorAll(params.parentSel);
+                const all = [];
+                for (const parent of parents) {
+                    const children = parent.querySelectorAll(params.childSel);
+                    for (const el of children) {
+                        all.push(el.textContent.trim());
+                    }
+                }
+                return all;
+            }
+        """, {"parentSel": parent_selector, "childSel": child})
+
+    if nth is not None:
+        result = result[nth:nth + 1]
+
+    return result
+
+
+def action_extract_all(page, args):
+    """CLI action: extract repeated / nested elements."""
+    nth = int(args.nth) if args.nth is not None else None
+    try:
+        child = json.loads(args.value)
+    except (json.JSONDecodeError, TypeError):
+        child = args.value  # plain CSS selector
+    result = extract_all(page, args.selector, child, nth=nth)
+    print(json.dumps(result, indent=2))
 
 
 def detect_form_fields(page) -> list[dict]:
@@ -416,6 +478,7 @@ ACTIONS = {
     "submit": action_submit,
     "wizard": action_wizard,
     "scrape": action_scrape,
+    "extract-all": action_extract_all,
 }
 
 
@@ -460,6 +523,7 @@ def main():
     parser.add_argument("--output", help="Output file (screenshot)")
     parser.add_argument("--timeout", type=int, default=30000, help="Navigation timeout ms")
     parser.add_argument("--retries", type=int, default=1, help="Max retry attempts on crash/timeout")
+    parser.add_argument("--nth", type=int, default=None, help="Nth item index (0-based) for extract-all")
 
     args = parser.parse_args()
 
