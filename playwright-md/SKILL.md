@@ -12,8 +12,22 @@ Single-command URL→Markdown. Chains Playwright (headless browser) with html2md
 
 > **Use project venv, not system Python.** All deps live in `.venv/`.
 
+### ⚠️ Token Efficiency: Always Prefer `--core-only`
+
+Full-page extraction includes nav, footer, ads, sidebar → massive token waste. **Default to `--core-only`** unless full page is explicitly required.
+
 ```bash
+# ✅ Preferred: core content only (strips nav/header/footer/aside/ads)
+.venv/bin/python main.py --url <URL> --action page-to-md --core-only
+
+# ❌ Avoid: full page (noisy, token-heavy)
 .venv/bin/python main.py --url <URL> --action page-to-md
+```
+
+When `--core-only` auto-detection is insufficient, use `--core-selector` with an explicit CSS target:
+
+```bash
+.venv/bin/python main.py --url <URL> --action page-to-md --core-selector "#main-content"
 ```
 
 ### Arguments
@@ -59,18 +73,19 @@ URL → Playwright navigate (chromium headless) → wait conditions → extract 
 
 ### Basic URL to Markdown
 ```bash
-.venv/bin/python main.py --url https://example.com --action page-to-md
+.venv/bin/python main.py --url https://example.com --action page-to-md --core-only
 ```
 
 ### Save to file
 ```bash
-.venv/bin/python main.py --url https://example.com --action page-to-md --output page.md
+.venv/bin/python main.py --url https://example.com --action page-to-md --core-only --output page.md
 ```
 
 ### Wait for dynamic content
 ```bash
 .venv/bin/python main.py --url https://app.com/dashboard \
   --action page-to-md \
+  --core-only \
   --wait-for "#data-table" --timeout 15000
 ```
 
@@ -78,19 +93,20 @@ URL → Playwright navigate (chromium headless) → wait conditions → extract 
 ```bash
 .venv/bin/python main.py --url https://app.com \
   --action page-to-md \
+  --core-only \
   --cookies '[{"name":"session","value":"abc123","domain":".app.com"}]'
 ```
 
-### Sub-region extraction
+### Sub-region extraction (alternative to --core-only)
 ```bash
 .venv/bin/python main.py --url https://docs.example.com \
   --action page-to-md \
   --selector "main article"
 ```
 
-### Batch mode
+### Batch mode (core-only default)
 ```bash
-.venv/bin/python main.py --urls urls.txt --output-dir ./output/
+.venv/bin/python main.py --urls urls.txt --output-dir ./output/ --core-only
 ```
 
 URL file supports `#` comment lines and blank lines (skipped). Filenames auto-generated from URLs. Progress + summary → stderr.
