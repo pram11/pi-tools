@@ -17,10 +17,10 @@ See [`STRUCTURE.md`](./STRUCTURE.md) for architecture decisions.
 - **Dependencies**: `playwright` skill (browser), `html2md` skill (converter).
 
 ## Core Commands
-- **Setup**: `pip install -r requirements.txt && python -m playwright install chromium`
-- **Basic**: `python main.py --url <URL> --action page-to-md`
-- **To file**: `python main.py --url <URL> --action page-to-md --output result.md`
-- **With auth**: `python main.py --url <URL> --cookies '[{"name":"x","value":"y"}]'`
+- **Setup**: `.venv/bin/pip install -r requirements.txt && .venv/bin/python -m playwright install chromium`
+- **Basic**: `.venv/bin/python main.py --url <URL> --action page-to-md`
+- **To file**: `.venv/bin/python main.py --url <URL> --action page-to-md --output result.md`
+- **With auth**: `.venv/bin/python main.py --url <URL> --cookies '[{"name":"x","value":"y"}]'`
 - **Tests**: `pytest tests/`
 
 ## Behavior & Workflow

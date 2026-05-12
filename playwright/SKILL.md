@@ -10,8 +10,10 @@ Headless Chromium automation via Playwright Python API. 46 built-in actions acro
 
 ## Usage
 
+> **Use project venv, not system Python. All deps live in `.venv/`.
+
 ```bash
-python main.py --url <URL> --action <ACTION> [--selector <CSS>] [--value <TEXT>] [--output <FILE>]
+.venv/bin/python main.py --url <URL> --action <ACTION> [--selector <CSS>] [--value <TEXT>] [--output <FILE>]
 ```
 
 ### Extra Flags
@@ -102,77 +104,77 @@ Persistent context via `session-start` / `session-stop`. State stored in `.sessi
 
 ```bash
 # Start session (navigates + saves cookies/localStorage)
-python main.py session-start --url https://example.com
+.venv/bin/python main.py session-start --url https://example.com
 
 # Subsequent actions reuse storage state (cookies, localStorage)
-python main.py --action click --selector "#btn"
-python main.py --action extract --selector "h1"
-python main.py --action screenshot --output result.png
+.venv/bin/python main.py --action click --selector "#btn"
+.venv/bin/python main.py --action extract --selector "h1"
+.venv/bin/python main.py --action screenshot --output result.png
 
 # End session (clears state)
-python main.py session-stop
+.venv/bin/python main.py session-stop
 ```
 
 ## Examples
 
 ```bash
 # Navigate + screenshot
-python main.py --url https://example.com --action navigate
-python main.py --action screenshot --output page.png
+.venv/bin/python main.py --url https://example.com --action navigate
+.venv/bin/python main.py --action screenshot --output page.png
 
 # Click + extract
-python main.py --action click --selector "#submit"
-python main.py --action extract --selector "h1"
+.venv/bin/python main.py --action click --selector "#submit"
+.venv/bin/python main.py --action extract --selector "h1"
 
 # JS evaluation
-python main.py --action eval --value "document.title"
+.venv/bin/python main.py --action eval --value "document.title"
 
 # Smart-fill form
-python main.py --action smart-fill --value '{"username":"admin","password":"s3cret"}'
-python main.py --action submit
+.venv/bin/python main.py --action smart-fill --value '{"username":"admin","password":"s3cret"}'
+.venv/bin/python main.py --action submit
 
 # Scrape table to CSV
-python main.py --action scrape --selector "table" --value csv
+.venv/bin/python main.py --action scrape --selector "table" --value csv
 
 # Multi-step wizard
-python main.py --action wizard --value '[{"fields":{"name":"A"},"next":".next"},{"fields":{"email":"a@b.com"},"submit":true}]'
+.venv/bin/python main.py --action wizard --value '[{"fields":{"name":"A"},"next":".next"},{"fields":{"email":"a@b.com"},"submit":true}]'
 
 # Shadow DOM pierce
-python main.py --action shadow-pierce --value "#app >> .modal >> .title"
+.venv/bin/python main.py --action shadow-pierce --value "#app >> .modal >> .title"
 
 # Network capture
-python main.py --url https://api.example.com --action network
+.venv/bin/python main.py --url https://api.example.com --action network
 
 # Auth injection (cookies)
-python main.py --url https://app.com --action auth-inject \
+.venv/bin/python main.py --url https://app.com --action auth-inject \
   --output cookies --value '[{"name":"token","value":"abc123"}]'
 
 # Auth injection (localStorage)
-python main.py --url https://app.com --action auth-inject \
+.venv/bin/python main.py --url https://app.com --action auth-inject \
   --output localStorage --value '{"theme":"dark","lang":"en"}'
 
 # Screenshot diff
-python main.py --action screenshot-diff --baseline expected.png --output actual.png --value 0.95
+.venv/bin/python main.py --action screenshot-diff --baseline expected.png --output actual.png --value 0.95
 
 # Batch assertions
-python main.py --action report \
+.venv/bin/python main.py --action report \
   --value '[{"type":"expect-text","selector":"h1","value":"Hello"},{"type":"expect-visible","selector":"#logo","value":""}]'
 
 # Multi-tab orchestration
-python main.py --action tabs-open --value 3
-python main.py --action tabs-gather --value "document.title"
-python main.py --action tabs-broadcast --value '[{"action":"goto","args":["https://a.com"]},{"action":"goto","args":["https://b.com"]},{"action":"goto","args":["https://c.com"]}]'
+.venv/bin/python main.py --action tabs-open --value 3
+.venv/bin/python main.py --action tabs-gather --value "document.title"
+.venv/bin/python main.py --action tabs-broadcast --value '[{"action":"goto","args":["https://a.com"]},{"action":"goto","args":["https://b.com"]},{"action":"goto","args":["https://c.com"]}]'
 
 # Dialog handling
-python main.py --action dialog-accept --selector "#confirm-btn"
-python main.py --action dialog-prompt --selector "#prompt-btn" --value "my answer"
+.venv/bin/python main.py --action dialog-accept --selector "#confirm-btn"
+.venv/bin/python main.py --action dialog-prompt --selector "#prompt-btn" --value "my answer"
 ```
 
 ## Setup
 
 ```bash
-pip install -r requirements.txt
-python -m playwright install chromium
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python -m playwright install chromium
 ```
 
 ## Output

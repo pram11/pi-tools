@@ -9,10 +9,12 @@ version: 0.2.0
 This skill allows the agent to autonomously map the functional surface area of any source code directory.
 
 ## Usage
+
+> **Use project venv, not system Python. All deps live in `.venv/`.
 The agent invokes the skill via the CLI:
 
 ```bash
-python main.py --path <directory_path> [--lang <py,tsx>] [--condensed]
+.venv/bin/python main.py --path <directory_path> [--lang <py,tsx>] [--condensed]
 ```
 
 ### Arguments
@@ -63,5 +65,5 @@ python main.py --path <directory_path> [--lang <py,tsx>] [--condensed]
 
 ## Setup
 ```bash
-pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt
 ```

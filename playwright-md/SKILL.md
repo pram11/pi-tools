@@ -10,8 +10,10 @@ Single-command URL→Markdown. Chains Playwright (headless browser) with html2md
 
 ## Usage
 
+> **Use project venv, not system Python.** All deps live in `.venv/`.
+
 ```bash
-python main.py --url <URL> --action page-to-md
+.venv/bin/python main.py --url <URL> --action page-to-md
 ```
 
 ### Arguments
@@ -54,45 +56,45 @@ URL → Playwright navigate (chromium headless) → wait conditions → extract 
 
 ### Basic URL to Markdown
 ```bash
-python main.py --url https://example.com --action page-to-md
+.venv/bin/python main.py --url https://example.com --action page-to-md
 ```
 
 ### Save to file
 ```bash
-python main.py --url https://example.com --action page-to-md --output page.md
+.venv/bin/python main.py --url https://example.com --action page-to-md --output page.md
 ```
 
 ### Wait for dynamic content
 ```bash
-python main.py --url https://app.com/dashboard \
+.venv/bin/python main.py --url https://app.com/dashboard \
   --action page-to-md \
   --wait-for "#data-table" --timeout 15000
 ```
 
 ### Auth via cookies
 ```bash
-python main.py --url https://app.com \
+.venv/bin/python main.py --url https://app.com \
   --action page-to-md \
   --cookies '[{"name":"session","value":"abc123","domain":".app.com"}]'
 ```
 
 ### Sub-region extraction
 ```bash
-python main.py --url https://docs.example.com \
+.venv/bin/python main.py --url https://docs.example.com \
   --action page-to-md \
   --selector "main article"
 ```
 
 ### Batch mode
 ```bash
-python main.py --urls urls.txt --output-dir ./output/
+.venv/bin/python main.py --urls urls.txt --output-dir ./output/
 ```
 
 URL file supports `#` comment lines and blank lines (skipped). Filenames auto-generated from URLs. Progress + summary → stderr.
 
 ### Switch backend
 ```bash
-python main.py --url https://example.com \
+.venv/bin/python main.py --url https://example.com \
   --action page-to-md --backend html2text
 ```
 
@@ -110,8 +112,8 @@ python main.py --url https://example.com \
 ## Setup
 
 ```bash
-pip install -r requirements.txt
-python -m playwright install chromium
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python -m playwright install chromium
 ```
 
 ## Auth / Session State

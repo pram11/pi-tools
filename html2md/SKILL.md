@@ -10,10 +10,12 @@ Convert HTML documents to Markdown for LLM context, documentation, or storage.
 
 ## Usage
 
+> **Use project venv, not system Python. All deps live in `.venv/`.
+
 ```bash
-python main.py --file <path.html>
-python main.py --html "<div>Hello</div>"
-echo "<h1>hi</h1>" | python main.py
+.venv/bin/python main.py --file <path.html>
+.venv/bin/python main.py --html "<div>Hello</div>"
+echo "<h1>hi</h1>" | .venv/bin/python main.py
 ```
 
 ### Arguments
@@ -43,36 +45,36 @@ echo "<h1>hi</h1>" | python main.py
 
 ### Convert local HTML file
 ```bash
-python main.py --file page.html
+.venv/bin/python main.py --file page.html
 ```
 
 ### Convert to file
 ```bash
-python main.py --file page.html --output notes.md
+.venv/bin/python main.py --file page.html --output notes.md
 ```
 
 ### Inline HTML string
 ```bash
-python main.py --html "<ul><li>A</li><li>B</li></ul>"
+.venv/bin/python main.py --html "<ul><li>A</li><li>B</li></ul>"
 ```
 
 ### Switch backend
 ```bash
-python main.py --file page.html --backend html2text
+.venv/bin/python main.py --file page.html --backend html2text
 ```
 
 ### Strip images, wrap at 80 chars
 ```bash
-python main.py --file page.html --strip-images --wrap 80
+.venv/bin/python main.py --file page.html --strip-images --wrap 80
 ```
 
 ### Pipe from Playwright (external skill chain)
 ```bash
 # Step 1: playwright skill extracts raw HTML
-python playwright/main.py --url https://example.com --action eval --value "document.documentElement.outerHTML"
+.venv/bin/python playwright/main.py --url https://example.com --action eval --value "document.documentElement.outerHTML"
 
 # Step 2: pipe into html2md
-python playwright/main.py --url https://example.com --action eval --value "..." | python html2md/main.py
+.venv/bin/python playwright/main.py --url https://example.com --action eval --value "..." | .venv/bin/python html2md/main.py
 ```
 
 ## Pipeline
@@ -87,5 +89,5 @@ HTML input → html_parser (sanitize, strip script/style)
 ## Setup
 
 ```bash
-pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt
 ```
