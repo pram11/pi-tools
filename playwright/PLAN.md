@@ -45,8 +45,8 @@
 - [x] Document in skill catalog (SKILL.md frontmatter + sections)
 
 ## Phase 8: Documentation & Polish
-- [ ] SKILL.md — document all 46 actions (currently 8 of 46)
-- [ ] SKILL.md — fix session syntax (`session-start` not `--session start`)
-- [ ] SKILL.md — bump version to 0.7.0, add missing flags (--retries, --baseline, --nth)
-- [ ] Create README.md
-- [ ] Sync ~/.pi/skills/playwright/SKILL.md
+- [x] SKILL.md — document all 46 actions (was 8 of 46)
+- [x] SKILL.md — fix session syntax (`session-start` not `--session start`)
+- [x] SKILL.md — bump version to 0.7.0, add missing flags (--retries, --baseline, --nth)
+- [x] Create README.md
+- [x] Sync ~/.pi/skills/playwright/SKILL.md
