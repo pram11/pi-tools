@@ -4,7 +4,7 @@
 LOCAL_SKILL_DIR="./.pi/skills/code-analyzer"
 GLOBAL_SKILL_DIR="$HOME/.pi/skills/code-analyzer"
 
-echo "Installing code-analyst skill..."
+echo "Installing code-analyzer skill..."
 
 if [ ! -d "$LOCAL_SKILL_DIR" ]; then
     echo "ERROR: Local skill dir not found: $LOCAL_SKILL_DIR"

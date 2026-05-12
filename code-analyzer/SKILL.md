@@ -1,10 +1,10 @@
 ---
-name: code-analyst
+name: code-analyzer
 description: Performs deep static analysis of a codebase to generate a feature chart containing routes, UI selectors, and structural metadata.
 version: 0.2.0
 ---
 
-# Code Analyst Skill
+# Code Analyzer Skill
 
 This skill allows the agent to autonomously map the functional surface area of any source code directory.
 
