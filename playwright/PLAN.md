@@ -43,3 +43,10 @@
 - [x] Add unit tests for CLI actions
 - [x] Add e2e smoke test (navigate → click → extract → screenshot)
 - [x] Document in skill catalog (SKILL.md frontmatter + sections)
+
+## Phase 8: Documentation & Polish
+- [ ] SKILL.md — document all 46 actions (currently 8 of 46)
+- [ ] SKILL.md — fix session syntax (`session-start` not `--session start`)
+- [ ] SKILL.md — bump version to 0.7.0, add missing flags (--retries, --baseline, --nth)
+- [ ] Create README.md
+- [ ] Sync ~/.pi/skills/playwright/SKILL.md
