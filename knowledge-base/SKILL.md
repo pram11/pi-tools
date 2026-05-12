@@ -25,42 +25,42 @@ When a user instructs you to register, update, delete, or query knowledge in the
 
 ## Usage Examples
 
-Always use the isolated venv Python interpreter. Base path: `~/.pi/skills/knowledge-base/`
+Always use the isolated venv Python interpreter. Base path: `~/.pi/agent/skills/knowledge-base/`
 
 ### Init Database (One-time setup)
 ```bash
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/init_db.py
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/init_db.py
 ```
 
 ### Create (Index a file)
 ```bash
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/create.py <FILE_PATH>
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/create.py <FILE_PATH>
 # Example:
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/create.py /home/ash/Documents/dev/test_web/src/main.ts
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/create.py /home/ash/Documents/dev/test_web/src/main.ts
 ```
 
 ### Search (Retrieve)
 ```bash
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/search.py <QUERY> [--top-k N]
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/search.py <QUERY> [--top-k N]
 # Example:
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/search.py "authentication logic" --top-k 5
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/search.py "authentication logic" --top-k 5
 ```
 
 ### Update (Refresh a file)
 ```bash
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/update.py <FILE_PATH>
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/update.py <FILE_PATH>
 # Example:
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/update.py /home/ash/Documents/dev/test_web/src/main.ts
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/update.py /home/ash/Documents/dev/test_web/src/main.ts
 ```
 
 ### Delete (Remove by file or directory)
 ```bash
 # Single file:
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/delete.py /home/ash/Documents/dev/test_web/src/main.ts
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/delete.py /home/ash/Documents/dev/test_web/src/main.ts
 
 # Whole directory:
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/delete.py /home/ash/Documents/dev/test_web/src/
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/delete.py /home/ash/Documents/dev/test_web/src/
 
 # Glob pattern:
-~/.pi/skills/knowledge-base/.venv/bin/python ~/.pi/skills/knowledge-base/scripts/delete.py . --pattern "*.test.js"
+~/.pi/agent/skills/knowledge-base/.venv/bin/python ~/.pi/agent/skills/knowledge-base/scripts/delete.py . --pattern "*.test.js"
 ```
