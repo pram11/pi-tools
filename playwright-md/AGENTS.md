@@ -21,6 +21,8 @@ See [`STRUCTURE.md`](./STRUCTURE.md) for architecture decisions.
 - **Basic**: `.venv/bin/python main.py --url <URL> --action page-to-md`
 - **To file**: `.venv/bin/python main.py --url <URL> --action page-to-md --output result.md`
 - **With auth**: `.venv/bin/python main.py --url <URL> --cookies '[{"name":"x","value":"y"}]'`
+- **Core only**: `.venv/bin/python main.py --url <URL> --core-only`
+- **Core + selector**: `.venv/bin/python main.py --url <URL> --core-selector '#main'`
 - **Tests**: `pytest tests/`
 
 ## Behavior & Workflow

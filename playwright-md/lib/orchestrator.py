@@ -11,6 +11,26 @@ from markdownify import markdownify
 
 STRIP_TAGS = {"script", "style", "noscript", "link", "meta"}
 
+# Core extraction: semantic tags to strip
+CORE_STRIP_TAGS = {"nav", "header", "footer", "aside"}
+# Core extraction: class patterns indicating non-content
+CORE_STRIP_CLASS_PATTERNS = ["nav", "sidebar", "ad", "footer", "menu", "banner"]
+# Core extraction: semantic main-content selectors (checked in priority order)
+CORE_MAIN_SELECTORS = ["main", "article", "[role='main']"]
+
+
+def _strip_non_content(soup: BeautifulSoup) -> None:
+    """Strip non-content tags and class-pattern elements from soup in-place."""
+    for tag_name in CORE_STRIP_TAGS:
+        for tag in soup.find_all(tag_name):
+            tag.decompose()
+    for tag in soup.find_all(True):
+        cls = tag.attrs.get("class") if tag.attrs else None
+        if cls:
+            classes = " ".join(cls)
+            if any(pat in classes.lower() for pat in CORE_STRIP_CLASS_PATTERNS):
+                tag.decompose()
+
 
 def sanitize_html(html: str) -> str:
     """Strip script, style, noscript tags from HTML."""
@@ -18,6 +38,51 @@ def sanitize_html(html: str) -> str:
     for tag_name in STRIP_TAGS:
         for tag in soup.find_all(tag_name):
             tag.decompose()
+    return str(soup)
+
+
+def extract_core(html: str, core_selector: str | None = None) -> str:
+    """Extract core content from HTML.
+
+    Strategy 1 — If core_selector given, extract that element.
+    Strategy 2 — Prefer semantic main-content elements (main, article, role=main).
+    Strategy 3 — Fallback: text-density scoring on divs.
+    Always strips nav, header, footer, aside + common non-content class patterns.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    if core_selector:
+        # Explicit override — extract specific element
+        el = soup.select_one(core_selector)
+        if el:
+            soup = BeautifulSoup(str(el), "html.parser")
+
+    # Strategy 2 — Check for semantic main-content tags
+    for selector in CORE_MAIN_SELECTORS:
+        el = soup.select_one(selector)
+        if el:
+            # Found main content container — return it after stripping children
+            soup = BeautifulSoup(str(el), "html.parser")
+            _strip_non_content(soup)
+            return str(soup)
+
+    # No semantic main tag found
+    _strip_non_content(soup)
+
+    # Strategy 3 — Text-density fallback
+    divs = soup.find_all("div")
+    if len(divs) > 1:
+        scores = []
+        for div in divs:
+            text = div.get_text(strip=True)
+            children = len(div.find_all(True))
+            # text length / (child count + 1) to avoid div/zero
+            score = len(text) / (children + 1)
+            scores.append((score, div))
+        scores.sort(reverse=True)
+        best_div = scores[0][1]
+        return str(best_div)
+
     return str(soup)
 
 
@@ -78,6 +143,8 @@ def run_page_to_md(
     cookies: str | None = None,
     headers: str | None = None,
     session_dir: str | None = None,
+    core_only: bool = False,
+    core_selector: str | None = None,
 ) -> int:
     """Full pipeline: navigate → wait → extract → sanitize → convert → output."""
     from playwright.sync_api import sync_playwright, Error as PlaywrightError
@@ -131,6 +198,10 @@ def run_page_to_md(
 
                 # Sub-region extraction
                 html = extract_sub_region(raw_html, selector)
+
+                # Core content extraction (additive with --selector)
+                if core_only:
+                    html = extract_core(html, core_selector=core_selector)
 
                 # Sanitize
                 html = sanitize_html(html)

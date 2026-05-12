@@ -1,7 +1,7 @@
 ---
 name: playwright-md
 description: "URL to Markdown via Playwright + html2md chain. Navigate any page (including JS-rendered), extract HTML, convert to clean Markdown. Supports auth injection, wait conditions, sub-region extraction, and batch URLs."
-version: 0.1.0
+version: 0.2.0
 ---
 
 # playwright-md Skill
@@ -35,6 +35,8 @@ Single-command URL→Markdown. Chains Playwright (headless browser) with html2md
 | `--headers` | JSON string | — | Inject custom headers `{"User-Agent":"bot"}` |
 | `--version` | — | — | Print version and exit |
 | `--session-dir` | path | `<skill-root>/.sessions` | Persistent browser state directory (saves/reads `storage_state.json`) |
+| `--core-only` | flag | false | Extract only core content (strip nav/header/footer/aside/ads) |
+| `--core-selector` | CSS | — | Explicit CSS selector for core content (overrides auto-detection) |
 
 ## Actions
 
@@ -47,6 +49,7 @@ Single-command URL→Markdown. Chains Playwright (headless browser) with html2md
 ```
 URL → Playwright navigate (chromium headless) → wait conditions → extract HTML
   → sanitize (strip script/style/noscript/link/meta, strip images)
+  → core extraction (optional, --core-only: strip nav/header/footer/aside/ads)
   → html2md convert → post-process (collapse blanks, strip trailing ws) → Markdown
 ```
 
@@ -96,6 +99,18 @@ URL file supports `#` comment lines and blank lines (skipped). Filenames auto-ge
 ```bash
 .venv/bin/python main.py --url https://example.com \
   --action page-to-md --backend html2text
+```
+
+### Core content only (strip nav/footer/ads)
+```bash
+.venv/bin/python main.py --url https://news.example.com/article \
+  --action page-to-md --core-only
+```
+
+### Core with explicit selector
+```bash
+.venv/bin/python main.py --url https://example.com \
+  --action page-to-md --core-selector "#article-body"
 ```
 
 ## Dependencies

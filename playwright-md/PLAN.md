@@ -50,3 +50,31 @@ Single CLI skill chaining Playwright (browser) + html2md (converter) → URL →
 - [x] Finalize SKILL.md (all actions + examples, v0.2.0)
 - [x] README.md
 - [x] Sync `~/.pi/skills/playwright-md/SKILL.md`
+
+## Phase 9: Core-Data-Only Extraction ✅
+
+### Goal
+Strip non-content regions (nav, header, footer, sidebar, ads) before conversion. Returns only main article/text body.
+
+### Implementation
+- [x] `--core-only` flag → activate content-extraction mode
+- [x] **Strategy 1 — Heuristic CSS removal**:
+  - Strip elements by semantic role: `nav`, `header`, `footer`, `aside`
+  - Strip by common class patterns: `.*nav.*`, `.*sidebar.*`, `.*ad.*`, `.*footer.*`, `.*menu.*`, `.*banner.*`
+- [x] **Strategy 2 — Main-content detection**:
+  - Prefer `<main>`, `<article>`, `[role="main"]` if present
+  - Fallback: score remaining `<div>` by text-density (text-length / child-element-count)
+  - Pick highest-score element as "core"
+- [x] Pipeline integration:
+  - Apply in `orchestrator.py` between `extract_sub_region()` → `sanitize_html()`
+  - New function: `extract_core(html: str, core_selector: str | None) -> str`
+  - Skipped if `--core-only` absent; additive with `--selector` (selector first, then core)
+- [x] **Config**:
+  - `--core-only` (boolean flag)
+  - `--core-selector <CSS>` (optional override — pick explicit element)
+- [x] Batch mode passthrough (add to `lib/batch.py` run_batch signature)
+- [x] Tests:
+  - Unit: `test_extract_core()` — verify nav/sidebar/footer removal (15 tests)
+  - Unit: `test_extract_core_main_tag()` — `<main>` preference
+  - E2E: full page → core-only markdown vs full markdown (assert smaller output)
+- [x] Update `SKILL.md`, `STRUCTURE.md`, `AGENTS.md`

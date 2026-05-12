@@ -29,6 +29,8 @@ def run_batch(
     cookies: str | None = None,
     headers: str | None = None,
     session_dir: str | None = None,
+    core_only: bool = False,
+    core_selector: str | None = None,
 ) -> int:
     """Process each URL from file. Output to --output-dir or stdout."""
     from .orchestrator import run_page_to_md
@@ -63,6 +65,8 @@ def run_batch(
             cookies=cookies,
             headers=headers,
             session_dir=session_dir,
+            core_only=core_only,
+            core_selector=core_selector,
         )
         if rc != 0:
             failed += 1

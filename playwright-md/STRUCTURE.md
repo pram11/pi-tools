@@ -48,6 +48,7 @@ Stage 2: Navigate          → page.goto(url, timeout=MS)
 Stage 3: Wait Conditions   → page.wait_for_selector() / wait_for_url()
 Stage 4: Extract HTML      → page.evaluate("document.documentElement.outerHTML")
 Stage 5: Sanitize          → BeautifulSoup strip <script>/<style>
+Stage 5.5: Core Extract    → strip nav/header/footer/aside + class patterns (optional, --core-only)
 Stage 6: Convert           → html2md backend (markdownify / html2text)
 Stage 7: Post-Process      → dedup blanks, normalize whitespace
 Stage 8: Output            → stdout or file

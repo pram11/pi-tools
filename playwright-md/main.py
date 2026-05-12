@@ -44,6 +44,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--urls", type=str, default=None, help="File with one URL per line (batch mode)")
     parser.add_argument("--output-dir", type=str, default=None, help="Output directory for batch mode")
+    parser.add_argument("--core-only", action="store_true", help="Extract only core content (strip nav/header/footer/aside)")
+    parser.add_argument("--core-selector", type=str, default=None, help="CSS selector for explicit core content override")
 
     return parser
 
@@ -93,6 +95,8 @@ def main() -> int:
             cookies=args.cookies,
             headers=args.headers,
             session_dir=args.session_dir,
+            core_only=args.core_only,
+            core_selector=args.core_selector,
         )
 
     if args.action == "page-to-md":
@@ -114,6 +118,8 @@ def main() -> int:
             cookies=args.cookies,
             headers=args.headers,
             session_dir=args.session_dir,
+            core_only=args.core_only,
+            core_selector=args.core_selector,
         )
 
     return 0
