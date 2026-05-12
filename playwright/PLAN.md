@@ -39,7 +39,7 @@
 - [x] Parallel pages — multi-tab orchestration
 
 ## Phase 7: Integration
-- [ ] Register in pi-mono skill registry
+- [x] Register in pi-mono skill registry (~/.pi/skills/ + ~/.pi/agent/skills/)
 - [x] Add unit tests for CLI actions
 - [x] Add e2e smoke test (navigate → click → extract → screenshot)
-- [ ] Document in skill catalog
+- [x] Document in skill catalog (SKILL.md frontmatter + sections)
