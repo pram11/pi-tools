@@ -10,7 +10,7 @@ Pure HTML → Markdown converter. No network. No URL fetching. Two pluggable bac
 raw HTML → sanitize → converter (strategy) → post-process → Markdown
 ```
 
-## Module Map (Rust)
+## Module Map (Rust — active)
 
 ```
 src/
@@ -46,6 +46,7 @@ Converter (trait / ABC)
 ```
 
 Engine holds a registry (`OnceLock<HashMap<&str, &dyn Converter>>`). Lookup by name. Unknown → error.
+
 - Both Rust backends share `scraper` + `ammonia` (no external HTML→MD crate).
 - Python backends use `markdownify` / `html2text` libraries.
 

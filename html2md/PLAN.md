@@ -37,9 +37,8 @@
 |-------|--------|
 | `clap` v4 | CLI arg parsing |
 | `html5ever` | HTML5 parsing |
-| `scraper` | DOM traversal |
-| `ammonia` | HTML sanitization |
 | `scraper` | DOM traversal + HTML→MD |
+| `ammonia` | HTML sanitization |
 | `thiserror` | Error types |
 | `tempfile` | E2E test fixtures |
 
