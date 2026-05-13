@@ -6,9 +6,9 @@ This file defines coding standards, command protocols, and autonomous behavior f
 See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for full module map and pipeline.
 
 - Single-process CLI dispatching to strategy-pattern converters.
-- Two backends: primary (`comrak`/`markdownify`), fallback (`custom`/`html2text`).
+- Two backends: primary (`comrak`/`markdownify` — full GFM), fallback (`custom`/`html2text` — simplified).
 - Pipeline: `raw HTML → sanitize → converter → post-processor → Markdown`.
-
+- **Rust uses `scraper` for DOM walk, `ammonia` for sanitization. No external HTML→MD crate.
 ## Plan
 See [`PLAN.md`](./PLAN.md) for roadmap and milestones.
 

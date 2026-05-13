@@ -1,0 +1,10 @@
+/workspace/pi-tools/knowledge-base/target/release/deps/tree_sitter_c-eafd5c304b83ef41.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../src/node-types.json /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/highlights.scm /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/tags.scm
+
+/workspace/pi-tools/knowledge-base/target/release/deps/libtree_sitter_c-eafd5c304b83ef41.rlib: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../src/node-types.json /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/highlights.scm /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/tags.scm
+
+/workspace/pi-tools/knowledge-base/target/release/deps/libtree_sitter_c-eafd5c304b83ef41.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../src/node-types.json /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/highlights.scm /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/tags.scm
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../src/node-types.json:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/highlights.scm:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-c-0.23.4/bindings/rust/../../queries/tags.scm:

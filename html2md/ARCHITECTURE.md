@@ -21,8 +21,8 @@ src/
 ├── post_processor.rs    # dedup blanks, rstrip, trim
 └── backend/
     ├── mod.rs
-    ├── comrak.rs        # Backend A: comrak HTML→MD
-    └── custom.rs        # Backend B: hand-rolled AST walker
+    ├── comrak.rs        # Backend A: scraper DOM → full GFM
+    └── custom.rs        # Backend B: scraper DOM → simplified MD
 ```
 
 ## Module Map (Python — legacy)
@@ -45,7 +45,9 @@ Converter (trait / ABC)
 └── custom / html2text    — fallback, different output flavor
 ```
 
-Engine holds a registry (`HashMap<String, Box<dyn Converter>>`). Lookup by name. Unknown → error.
+Engine holds a registry (`OnceLock<HashMap<&str, &dyn Converter>>`). Lookup by name. Unknown → error.
+- Both Rust backends share `scraper` + `ammonia` (no external HTML→MD crate).
+- Python backends use `markdownify` / `html2text` libraries.
 
 ## Error Flow
 

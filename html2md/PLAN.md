@@ -39,7 +39,7 @@
 | `html5ever` | HTML5 parsing |
 | `scraper` | DOM traversal |
 | `ammonia` | HTML sanitization |
-| `comrak` | Backend A (HTML→MD) |
+| `scraper` | DOM traversal + HTML→MD |
 | `thiserror` | Error types |
 | `tempfile` | E2E test fixtures |
 
