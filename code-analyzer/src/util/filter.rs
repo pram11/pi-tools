@@ -5,7 +5,7 @@ use std::path::Path;
 const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
     ".venv", "__pycache__", ".git", "node_modules", ".pytest_cache",
     ".mypy_cache", ".tox", "venv", "env", "dist", "build", ".eggs",
-    "target",
+    "target", ".cargo",
 ];
 
 fn should_exclude(path: &Path, exclude_dirs: Option<&[String]>) -> bool {

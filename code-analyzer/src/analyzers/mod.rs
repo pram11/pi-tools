@@ -5,16 +5,19 @@ use crate::analyzer::Analyzer;
 mod jsx;
 mod python;
 mod regex;
+mod rust;
 
 pub use jsx::JsxAnalyzer;
 pub use python::PythonAnalyzer;
 pub use regex::RegexAnalyzer;
+pub use rust::RustAnalyzer;
 
 pub fn discover() -> Vec<Box<dyn Analyzer>> {
     vec![
         Box::new(PythonAnalyzer::new()),
         Box::new(JsxAnalyzer::new()),
         Box::new(RegexAnalyzer::new()),
+        Box::new(RustAnalyzer::new()),
     ]
 }
 
