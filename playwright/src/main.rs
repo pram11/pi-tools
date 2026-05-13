@@ -5,6 +5,10 @@ mod utils;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use actions::{CliArgs, dispatch};
+use playwright::Playwright;
+use playwright::api::browser_context::BrowserContext;
+use playwright::api::browser::Browser;
+use playwright::api::page::Page;
 
 #[derive(Parser)]
 #[command(name = "playwright", about = "Headless Chromium automation CLI")]
@@ -49,53 +53,23 @@ async fn main() -> Result<()> {
         None => {}
     }
 
-    let action = cli.action.as_deref().ok_or_else(|| {
-        eprintln!("No action specified. Use --help for usage.");
-        std::process::exit(1);
-    })?;
-
-    let browser = playwright::Playwright::new().await?.with_chromium().headless(true).launch().await?;
-
-    // Restore persistent storage if session active
-    let context = if session::session_active() {
-        if let Some(storage_path) = session::storage_state_path() {
-            let storage_str = std::fs::read_to_string(&storage_path).ok();
-            browser.new_context()
-                .storage_state_path(storage_path.to_str().unwrap_or(""))
-                .await?
-        } else {
-            browser.new_context().await?
-        }
-    } else {
-        browser.new_context().await?
-    };
-
-    let page = context.new_page().await?;
-
-    // Navigate with auto-recovery
-    let url = cli.args.url.clone().or_else(|| session::load_session().map(|s| s.url));
-    if let Some(ref target_url) = url {
-        if let Err(e) = utils::retry(cli.args.retries, || async {
-            page.goto(target_url)
-                .wait_until(playwright::types::WaitUntil::DomContentLoaded)
-                .timeout(cli.args.timeout)
-                .await
-        }).await {
-            eprintln!("[error] Navigation failed: {e}");
-            browser.close().await.ok();
+    let action = match cli.action.as_deref() {
+        Some(a) => a.to_string(),
+        None => {
+            eprintln!("No action specified. Use --help for usage.");
             std::process::exit(1);
         }
-    }
+    };
 
-    // Dispatch action
-    let result = dispatch(action, &cli.args, &browser).await;
+    let (browser, context, page) = launch_browser(&cli.args).await?;
+    let result = dispatch(&action, &cli.args, &browser, &context, page).await;
 
     // Persist storage after successful action
     if result.is_ok() && session::session_active() {
         let sp = session::storage_path();
-        context.storage_state().await.map(|state| {
-            std::fs::write(&sp, serde_json::to_string(&state).unwrap_or_default).ok();
-        }).ok();
+        if let Ok(state) = context.storage_state().await {
+            std::fs::write(&sp, serde_json::to_string(&state).unwrap_or_default()).ok();
+        }
     }
 
     if let Err(e) = result {
@@ -104,25 +78,58 @@ async fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    browser.close().await?;
+    browser.close().await.ok();
     Ok(())
 }
 
-async fn session_start(url: &str) -> Result<()> {
-    let pw = playwright::Playwright::new().await?;
-    let browser = pw.with_chromium().headless(true).launch().await?;
-    let context = browser.new_context().await?;
+async fn launch_browser(args: &CliArgs) -> Result<(Browser, BrowserContext, Page)> {
+    let pw = Playwright::initialize().await?;
+    let browser = pw.chromium().launcher().headless(true).launch().await?;
+    let context = browser.context_builder().build().await?;
     let page = context.new_page().await?;
-    page.goto(url).wait_until(playwright::types::WaitUntil::DomContentLoaded).await?;
 
-    session::save_session(&page.url().await, &page.title().await, "[]")?;
+    let url = args.url.clone().or_else(|| session::load_session().map(|s| s.url));
+    if let Some(ref target_url) = url {
+        navigate_with_retry(&page, target_url, args.retries, args.timeout).await?;
+    }
 
-    // Save storage state
+    Ok((browser, context, page))
+}
+
+async fn navigate_with_retry(page: &Page, url: &str, retries: usize, timeout: u64) -> Result<()> {
+    let mut last_err = anyhow::anyhow!("No attempts made");
+    for i in 0..=retries {
+        match page.goto_builder(url)
+            .timeout(timeout as f64)
+            .goto().await {
+            Ok(_) => return Ok(()),
+            Err(e) => {
+                last_err = anyhow::anyhow!("{}: {}", e, if i < retries { "retrying..." } else { "giving up" });
+                if i < retries {
+                    tokio::time::sleep(std::time::Duration::from_millis(100 * (1 << i))).await;
+                }
+            }
+        }
+    }
+    Err(last_err)
+}
+
+async fn session_start(url: &str) -> Result<()> {
+    let pw = Playwright::initialize().await?;
+    let browser = pw.chromium().launcher().headless(true).launch().await?;
+    let context = browser.context_builder().build().await?;
+    let page = context.new_page().await?;
+    page.goto_builder(url).goto().await?;
+
+    let page_url = page.url()?;
+    let title = page.title().await?;
+    session::save_session(&page_url, &title, "[]")?;
+
     let sp = session::storage_path();
     let state = context.storage_state().await?;
-    std::fs::write(&sp, serde_json::to_string(&state).unwrap_or_default)?;
+    std::fs::write(&sp, serde_json::to_string(&state).unwrap_or_default())?;
 
-    println!("[session] Started at: {}", page.url().await);
+    println!("[session] Started at: {}", page.url()?);
     browser.close().await?;
     Ok(())
 }

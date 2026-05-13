@@ -1,16 +1,15 @@
 use anyhow::Result;
-use image::{GenericImageView, RgbImage};
-use playwright::Page;
+use playwright::api::page::Page;
 use std::fs;
 use std::path::Path;
 use crate::actions::CliArgs;
 
 pub async fn action_screenshot(page: &Page, args: &CliArgs) -> Result<()> {
     let path = args.output.as_deref().unwrap_or("screenshot.png");
-    page.screenshot()
-        .path(path)
+    let data: Vec<u8> = page.screenshot_builder()
         .full_page(true)
-        .await?;
+        .screenshot().await?;
+    fs::write(path, &data)?;
     println!("[screenshot] Saved: {path}");
     Ok(())
 }
@@ -21,7 +20,8 @@ pub async fn action_screenshot_diff(page: &Page, args: &CliArgs) -> Result<()> {
     let threshold: f64 = args.value.as_deref().unwrap_or("0.95").parse()?;
 
     if !Path::new(actual).exists() {
-        page.screenshot().path(actual).full_page(true).await?;
+        let data: Vec<u8> = page.screenshot_builder().full_page(true).screenshot().await?;
+        fs::write(actual, &data)?;
     }
 
     let result = diff_screenshots(baseline, actual, threshold)?;
@@ -53,18 +53,20 @@ pub fn diff_screenshots(
 
     let total = (w * h) as usize;
     let mut diff_count = 0usize;
-    let mut diff_img = image::RgbImage::new(w, h);
 
-    for (i, ((&a, &b), &mut d)) in img_a.pixels().zip(img_b.pixels()).zip(diff_img.pixels().iter_mut()).enumerate() {
+    // Build diff image as raw buffer
+    let mut diff_buf = vec![0u8; (w * h * 3) as usize];
+    for (idx, (&a, &b)) in img_a.pixels().zip(img_b.pixels()).enumerate() {
+        let offset = idx * 3;
         if a != b {
             diff_count = diff_count.saturating_add(1);
-            *d = image::Rgb([255, 0, 0]);
-        } else {
-            *d = image::Rgb([0, 0, 0]);
+            diff_buf[offset..offset+3].copy_from_slice(&[255, 0, 0]);
         }
     }
 
-    // Deduplicate per-pixel to per-unique-pixel (simple: count unique diff pixels)
+    let diff_img = image::RgbImage::from_raw(w, h, diff_buf)
+        .ok_or_else(|| anyhow::anyhow!("Failed to create diff image"))?;
+
     let similarity = 1.0 - (diff_count as f64 / total as f64);
     let diff_path = format!("screenshot_diff_{:x}.png", std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

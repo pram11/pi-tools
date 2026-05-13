@@ -1,16 +1,14 @@
 ---
 name: playwright-md
 description: "URL to Markdown via Playwright + html2md chain. Navigate any page (including JS-rendered), extract HTML, convert to clean Markdown. Supports auth injection, wait conditions, sub-region extraction, and batch URLs."
-version: 0.2.0
+version: 0.3.0
 ---
 
 # playwright-md Skill
 
-Single-command URL→Markdown. Chains Playwright (headless browser) with html2md (converter). One CLI call replaces two-step manual piping.
+Single-command URL→Markdown. Single Rust binary chains Playwright (headless browser) with comrak (converter). One CLI call replaces two-step manual piping.
 
 ## Usage
-
-> **Use project venv, not system Python.** All deps live in `.venv/`.
 
 ### ⚠️ Token Efficiency: Always Prefer `--core-only`
 
@@ -18,16 +16,16 @@ Full-page extraction includes nav, footer, ads, sidebar → massive token waste.
 
 ```bash
 # ✅ Preferred: core content only (strips nav/header/footer/aside/ads)
-.venv/bin/python main.py --url <URL> --action page-to-md --core-only
+./target/release/playwright-md --url <URL> --action page-to-md --core-only
 
 # ❌ Avoid: full page (noisy, token-heavy)
-.venv/bin/python main.py --url <URL> --action page-to-md
+./target/release/playwright-md --url <URL> --action page-to-md
 ```
 
 When `--core-only` auto-detection is insufficient, use `--core-selector` with an explicit CSS target:
 
 ```bash
-.venv/bin/python main.py --url <URL> --action page-to-md --core-selector "#main-content"
+./target/release/playwright-md --url <URL> --action page-to-md --core-selector "#main-content"
 ```
 
 ### Arguments
@@ -44,7 +42,7 @@ When `--core-only` auto-detection is insufficient, use `--core-selector` with an
 | `--timeout` | int | 30000 | Navigation timeout (ms) |
 | `--retries` | int | 1 | Auto-retry on crash/timeout |
 | `--selector` | CSS | — | Extract sub-region HTML (not full page) |
-| `--backend` | `markdownify` \| `html2text` | `markdownify` | html2md converter backend |
+| `--pre-action` | string | — | Semicolon-separated actions delegated to `../playwright/` (e.g. `click,#btn;type,#search,qwerty`) |
 | `--cookies` | JSON string | — | Inject cookies array `[{"name":"x","value":"y"}]` |
 | `--headers` | JSON string | — | Inject custom headers `{"User-Agent":"bot"}` |
 | `--version` | — | — | Print version and exit |
@@ -62,28 +60,29 @@ When `--core-only` auto-detection is insufficient, use `--core-selector` with an
 
 ```
 URL → Playwright navigate (chromium headless) → wait conditions → extract HTML
+  → pre-actions (optional, --pre-action: delegate to ../playwright/)
   → sanitize (strip script/style/noscript/link/meta, strip images)
   → core extraction (optional, --core-only: strip nav/header/footer/aside/ads)
-  → html2md convert → post-process (collapse blanks, strip trailing ws) → Markdown
+  → comrak convert → post-process (collapse blanks, strip trailing ws) → Markdown
 ```
 
-**Note:** Image stripping is hardcoded in both backends. No CLI flag to re-enable.
+**Note:** Image stripping is hardcoded. No CLI flag to re-enable.
 
 ## Examples
 
 ### Basic URL to Markdown
 ```bash
-.venv/bin/python main.py --url https://example.com --action page-to-md --core-only
+./target/release/playwright-md --url https://example.com --action page-to-md --core-only
 ```
 
 ### Save to file
 ```bash
-.venv/bin/python main.py --url https://example.com --action page-to-md --core-only --output page.md
+./target/release/playwright-md --url https://example.com --action page-to-md --core-only --output page.md
 ```
 
 ### Wait for dynamic content
 ```bash
-.venv/bin/python main.py --url https://app.com/dashboard \
+./target/release/playwright-md --url https://app.com/dashboard \
   --action page-to-md \
   --core-only \
   --wait-for "#data-table" --timeout 15000
@@ -91,7 +90,7 @@ URL → Playwright navigate (chromium headless) → wait conditions → extract 
 
 ### Auth via cookies
 ```bash
-.venv/bin/python main.py --url https://app.com \
+./target/release/playwright-md --url https://app.com \
   --action page-to-md \
   --core-only \
   --cookies '[{"name":"session","value":"abc123","domain":".app.com"}]'
@@ -99,52 +98,68 @@ URL → Playwright navigate (chromium headless) → wait conditions → extract 
 
 ### Sub-region extraction (alternative to --core-only)
 ```bash
-.venv/bin/python main.py --url https://docs.example.com \
+./target/release/playwright-md --url https://docs.example.com \
   --action page-to-md \
   --selector "main article"
 ```
 
 ### Batch mode (core-only default)
 ```bash
-.venv/bin/python main.py --urls urls.txt --output-dir ./output/ --core-only
+./target/release/playwright-md --urls urls.txt --output-dir ./output/ --core-only
 ```
 
 URL file supports `#` comment lines and blank lines (skipped). Filenames auto-generated from URLs. Progress + summary → stderr.
 
-### Switch backend
-```bash
-.venv/bin/python main.py --url https://example.com \
-  --action page-to-md --backend html2text
-```
-
 ### Core content only (strip nav/footer/ads)
 ```bash
-.venv/bin/python main.py --url https://news.example.com/article \
+./target/release/playwright-md --url https://news.example.com/article \
   --action page-to-md --core-only
 ```
 
 ### Core with explicit selector
 ```bash
-.venv/bin/python main.py --url https://example.com \
+./target/release/playwright-md --url https://example.com \
   --action page-to-md --core-selector "#article-body"
+```
+
+### Pre-action chain via ../playwright/
+```bash
+./target/release/playwright-md --url https://app.com \
+  --action page-to-md \
+  --core-only \
+  --pre-action "click,#login;type,#user,admin;type,#pass,s3cret;click,#submit;wait,#dashboard"
 ```
 
 ## Dependencies
 
 | Dependency | Type | Role |
 |---|---|---|
-| `playwright` | pip package | Browser automation (navigate, extract HTML) |
-| `html2md` | sibling skill (`../html2md/`) | HTML → Markdown conversion |
-| `beautifulsoup4` | pip package | HTML parsing/sanitization |
-| `markdownify` / `html2text` | pip packages | Conversion backends |
+| `playwright` | Rust crate | Browser automation (navigate, extract HTML) |
+| `comrak` | Rust crate | HTML → Markdown conversion |
+| `ammonia` | Rust crate | HTML parsing/sanitization |
+| `clap` | Rust crate | CLI argument parsing |
+| `tokio` | Rust crate | Async runtime |
+| `tracing` | Rust crate | Logging/telemetry |
+| `thiserror` | Rust crate | Error handling |
 
-`../html2md/` path injected at runtime via `SkillPathResolver`.
+### Sibling Skill Chain
+
+**`../playwright/`** — relative path to sibling playwright skill. Pre-actions (`--pre-action`) are delegated here for complex browser interactions (click, type, shadow DOM, iframes, upload, dialog handling, multi-tab). Core pipeline (navigate → extract → convert) stays in-process.
+
+```bash
+# Click, type, wait — then extract as Markdown
+./target/release/playwright-md --url https://app.com \
+  --action page-to-md \
+  --core-only \
+  --pre-action "click,#search-btn;type,#input,hello;wait,#results"
+```
+
+Pre-actions support all `../playwright/` actions: `click`, `type`, `wait`, `scroll`, `eval`, `dialog-*`, `shadow-*`, `iframe-*`, `upload`.
 
 ## Setup
 
 ```bash
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python -m playwright install chromium
+cargo build --release
 ```
 
 ## Auth / Session State

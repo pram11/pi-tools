@@ -1,0 +1,25 @@
+# Rust build artifacts
+target/
+**/target/
+*.rlib
+*.rmeta
+
+# Python venvs
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQLite DB (knowledge-base)
+*.db
+*.sqlite

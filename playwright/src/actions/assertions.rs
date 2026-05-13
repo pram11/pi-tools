@@ -1,11 +1,12 @@
 use anyhow::{Result, bail};
-use playwright::Page;
+use playwright::api::frame::FrameState;
+use playwright::api::page::Page;
 use crate::actions::CliArgs;
 
 pub async fn action_assert_text(page: &Page, args: &CliArgs) -> Result<()> {
     let sel = args.selector.as_deref().ok_or_else(|| anyhow::anyhow!("No selector"))?;
     let expected = args.value.as_deref().ok_or_else(|| anyhow::anyhow!("No expected value"))?;
-    let text = page.inner_text(sel).await.unwrap_or_default();
+    let text = page.inner_text(sel, None).await.unwrap_or_default();
     if !text.contains(expected) {
         bail!("expect-text failed on {sel}: expected '{expected}' in '{text}'");
     }
@@ -15,15 +16,17 @@ pub async fn action_assert_text(page: &Page, args: &CliArgs) -> Result<()> {
 
 pub async fn action_assert_visible(page: &Page, args: &CliArgs) -> Result<()> {
     let sel = args.selector.as_deref().ok_or_else(|| anyhow::anyhow!("No selector"))?;
-    page.wait_for_selector(sel).state(playwright::types::WaitForSelectorState::Visible)
-        .timeout(5000).await?;
+    page.wait_for_selector_builder(sel)
+        .state(FrameState::Visible)
+        .timeout(5000.0)
+        .wait_for_selector().await?;
     println!("[assert] expect-visible passed: {sel}");
     Ok(())
 }
 
 pub async fn action_assert_url(page: &Page, args: &CliArgs) -> Result<()> {
     let expected = args.value.as_deref().ok_or_else(|| anyhow::anyhow!("No expected URL"))?;
-    let actual = page.url().await;
+    let actual = page.url()?;
     if !actual.contains(expected) {
         bail!("expect-url failed: expected '{expected}' in '{actual}'");
     }
@@ -44,15 +47,17 @@ pub async fn action_report(page: &Page, args: &CliArgs) -> Result<()> {
 
         let ok = match atype {
             "expect-text" => {
-                let text = page.inner_text(selector).await.unwrap_or_default();
+                let text = page.inner_text(selector, None).await.unwrap_or_default();
                 text.contains(value)
             }
             "expect-visible" => {
-                page.wait_for_selector(selector).state(playwright::types::WaitForSelectorState::Visible)
-                    .timeout(5000).await.is_ok()
+                page.wait_for_selector_builder(selector)
+                    .state(FrameState::Visible)
+                    .timeout(5000.0)
+                    .wait_for_selector().await.is_ok()
             }
             "expect-url" => {
-                page.url().await.contains(value)
+                page.url().map(|u| u.contains(value)).unwrap_or(false)
             }
             _ => {
                 results.push(serde_json::json!({

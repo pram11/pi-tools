@@ -1,1 +1,0 @@
-/workspace/pi-tools/knowledge-base/target/release/knowledge-base: /workspace/pi-tools/knowledge-base/src/chunker.rs /workspace/pi-tools/knowledge-base/src/cli.rs /workspace/pi-tools/knowledge-base/src/db.rs /workspace/pi-tools/knowledge-base/src/embedder.rs /workspace/pi-tools/knowledge-base/src/main.rs

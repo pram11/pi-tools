@@ -14,19 +14,19 @@ pub mod tabs;
 
 use anyhow::Result;
 use clap::Parser;
-use playwright::Browser;
+use playwright::api::browser::Browser;
+use playwright::api::browser_context::BrowserContext;
+use playwright::api::page::Page;
 
 // ── Action Dispatch ─────────────────────────────────────────────
 
-/// Dispatch an action name to its handler.
 pub async fn dispatch(
     action: &str,
     args: &CliArgs,
-    browser: &Browser,
+    _browser: &Browser,
+    context: &BrowserContext,
+    page: Page,
 ) -> Result<()> {
-    let context = browser.new_context().await?;
-    let page = context.new_page().await?;
-
     match action {
         // Phase 1 — Core
         "navigate" => navigate::action_navigate(&page, args).await,
@@ -47,7 +47,7 @@ pub async fn dispatch(
         // Phase 4 — Data Extraction
         "scrape" => extract::action_scrape(&page, args).await,
         "extract-all" => extract::action_extract_all(&page, args).await,
-        "network" => network::action_network(&page, &context, args).await,
+        "network" => network::action_network(&page, args).await,
         "pdf" => network::action_pdf(&page, args).await,
 
         // Phase 5 — Assertions
@@ -82,23 +82,21 @@ pub async fn dispatch(
         "upload-detect" => upload::action_upload_detect(&page, args).await,
 
         // Phase 6 — Auth
-        "auth-inject" => auth::action_auth_inject(&page, &context, args).await,
+        "auth-inject" => auth::action_auth_inject(&page, context, args).await,
         "auth-clear" => auth::action_auth_clear(&page, args).await,
 
         // Phase 6 — Tabs
-        "tabs-open" => tabs::action_tabs_open(&context, args).await,
-        "tabs-list" => tabs::action_tabs_list(&context, args).await,
-        "tabs-switch" => tabs::action_tabs_switch(&context, args).await,
-        "tabs-close" => tabs::action_tabs_close(&context, args).await,
-        "tabs-close-all" => tabs::action_tabs_close_all(&context, args).await,
-        "tabs-broadcast" => tabs::action_tabs_broadcast(&context, args).await,
-        "tabs-gather" => tabs::action_tabs_gather(&context, args).await,
+        "tabs-open" => tabs::action_tabs_open(context, args).await,
+        "tabs-list" => tabs::action_tabs_list(context, args).await,
+        "tabs-switch" => tabs::action_tabs_switch(context, args).await,
+        "tabs-close" => tabs::action_tabs_close(context, args).await,
+        "tabs-close-all" => tabs::action_tabs_close_all(context, args).await,
+        "tabs-broadcast" => tabs::action_tabs_broadcast(context, args).await,
+        "tabs-gather" => tabs::action_tabs_gather(context, args).await,
 
         _ => anyhow::bail!("Unknown action: {action}"),
     }
 }
-
-// ── CLI Args (shared across all actions) ────────────────────────
 
 #[derive(Parser, Debug)]
 pub struct CliArgs {
