@@ -1,80 +1,48 @@
-# playwright-md Skill — Implementation Plan
+# Plan — playwright-md Rust Port
 
-## Goal
-Single CLI skill chaining Playwright (browser) + html2md (converter) → URL → Markdown output. Eliminates manual 2-step piping.
+## Phase 1: Scaffold
+- [ ] Initialize Cargo project (`cargo init`)
+- [ ] Add dependencies: `playwright`, `comrak`, `ammonia`, `clap`, `tokio`, `tracing`, `thiserror`
+- [ ] Module skeleton (`src/cli.rs`, `src/pipeline.rs`, `src/browser.rs`, `src/sanitize.rs`, `src/convert.rs`, `src/output.rs`, `src/errors.rs`)
+- [ ] Basic `main.rs` → parse args → print hello
 
----
+## Phase 2: Browser Layer
+- [ ] `browser::launch()` — headless Chromium via playwright crate
+- [ ] `browser::navigate(url)` — with timeout
+- [ ] `browser::close()` — Drop impl + explicit close
+- [ ] Cookie injection: `context.add_cookies()`
 
-## Phase 1: Core Scaffold ✅
-- [x] Create `playwright-md/` directory
-- [x] Write `SKILL.md`, `STRUCTURE.md`, `AGENTS.md`, `PLAN.md`
-- [x] Implement `main.py` CLI entry point (argparse dispatcher)
-- [x] Define `--url`, `--action page-to-md` as primary interface
-- [x] Resolve sibling skill paths: `../playwright/`, `../html2md/`
+## Phase 3: Pipeline Core
+- [ ] `pipeline::run(args)` — wire navigate → extract → sanitize → convert → output
+- [ ] HTML extraction: `page.content()` / `page.query_selector()` for core-selector
+- [ ] Sanitize: `ammonia::clean()` — strip script/style/noscript
+- [ ] Convert: `comrak::markdown_to_html` (reversed) / `comrak::html_to_md` equivalent
+- [ ] Wait conditions: `--wait-for` (selector), `--wait-for-url` (navigation)
 
-## Phase 2: Unified `page-to-md` Action ✅
-- [x] Navigate URL via Playwright → `domcontentloaded`
-- [x] Extract `document.documentElement.outerHTML`
-- [x] Pipe raw HTML → html2md conversion pipeline
-- [x] Markdown to stdout, errors to stderr, exit 1 on failure
+## Phase 4: CLI Parity
+- [ ] All original args: `--url`, `--action`, `--output`, `--cookies`, `--core-only`, `--core-selector`, `--wait-for`, `--wait-for-url`, `--retries`
+- [ ] Stdout default, `--output` → file
+- [ ] Exit codes: 0 success, 1 error
+- [ ] Stderr logging via tracing
 
-## Phase 3: Wait & Retry Logic ✅
-- [x] `--wait-for <selector>` — wait for selector before extraction
-- [x] `--wait-for-url <pattern>` — wait for URL match
-- [x] `--timeout <MS>` — navigation timeout (default 30000)
-- [x] `--retries <N>` — auto-retry on crash/timeout
+## Phase 4b: Sibling Skill Chain (`../playwright/`)
+- [ ] `--pre-action` flag: semicolon-separated action list
+- [ ] Subprocess launcher: resolve `../playwright/` relative to skill root → invoke per action step
+- [ ] Action parser: split `action,sel,val` tuples → map to playwright CLI args
+- [ ] Supported actions: `click`, `type`, `wait`, `scroll`, `eval`, `dialog-*`, `shadow-*`, `iframe-*`, `upload`
+- [ ] Error propagation: playwright subprocess failure → abort pipeline, exit 1
+- [ ] State handoff: share session/context between pre-actions (same `--session-dir`)
+- [ ] Integration test: `click` + `type` + `wait` → verify DOM mutation before extract
 
-## Phase 4: Auth & Session Support ✅
-- [x] `--cookies <JSON>` — inject cookies before navigate
-- [x] `--headers <JSON>` — inject custom headers
-- [x] `--session-dir <path>` — persistent storage state (reuses playwright session mode)
+## Phase 5: Polish
+- [ ] Unit tests per module
+- [ ] Integration tests (browser required)
+- [ ] `cargo clippy` clean
+- [ ] Benchmark vs Python version (cold start, throughput)
+- [ ] Binary distribution (static linking? musl?)
 
-## Phase 5: Advanced Extraction ✅
-- [x] `--selector <CSS>` — extract sub-region HTML instead of full page
-- [x] `--strip-scripts` — remove `<script>` tags pre-conversion (default: true, hardcoded in sanitize_html)
-- [x] `--strip-styles` — remove `<style>` tags pre-conversion (default: true, hardcoded in sanitize_html)
-- [x] `--backend <markdownify|html2text>` — choose html2md backend
-
-## Phase 6: Multi-Page & Batch ✅
-- [x] `--urls <file>` — batch process URL list → one Markdown per URL
-- [x] `--output-dir <dir>` — write output to directory
-- [x] `--output <file>` — single file output
-
-## Phase 7: Testing & Integration ✅
-- [x] Unit tests (mock Playwright, verify HTML→MD pipeline) — 30 tests passing
-- [x] E2E smoke test: navigate → extract → convert → assert Markdown (pipeline-level, no browser)
-- [x] Register in `.pi/skills/playwright-md/`
-- [x] Verify agent invocation via terminal
-
-## Phase 8: Documentation & Polish ✅
-- [x] Finalize SKILL.md (all actions + examples, v0.2.0)
-- [x] README.md
-- [x] Sync `~/.pi/skills/playwright-md/SKILL.md`
-
-## Phase 9: Core-Data-Only Extraction ✅
-
-### Goal
-Strip non-content regions (nav, header, footer, sidebar, ads) before conversion. Returns only main article/text body.
-
-### Implementation
-- [x] `--core-only` flag → activate content-extraction mode
-- [x] **Strategy 1 — Heuristic CSS removal**:
-  - Strip elements by semantic role: `nav`, `header`, `footer`, `aside`
-  - Strip by common class patterns: `.*nav.*`, `.*sidebar.*`, `.*ad.*`, `.*footer.*`, `.*menu.*`, `.*banner.*`
-- [x] **Strategy 2 — Main-content detection**:
-  - Prefer `<main>`, `<article>`, `[role="main"]` if present
-  - Fallback: score remaining `<div>` by text-density (text-length / child-element-count)
-  - Pick highest-score element as "core"
-- [x] Pipeline integration:
-  - Apply in `orchestrator.py` between `extract_sub_region()` → `sanitize_html()`
-  - New function: `extract_core(html: str, core_selector: str | None) -> str`
-  - Skipped if `--core-only` absent; additive with `--selector` (selector first, then core)
-- [x] **Config**:
-  - `--core-only` (boolean flag)
-  - `--core-selector <CSS>` (optional override — pick explicit element)
-- [x] Batch mode passthrough (add to `lib/batch.py` run_batch signature)
-- [x] Tests:
-  - Unit: `test_extract_core()` — verify nav/sidebar/footer removal (15 tests)
-  - Unit: `test_extract_core_main_tag()` — `<main>` preference
-  - E2E: full page → core-only markdown vs full markdown (assert smaller output)
-- [x] Update `SKILL.md`, `STRUCTURE.md`, `AGENTS.md`
+## Phase 6: Cutover
+- [ ] Feature parity verified against Python version
+- [ ] Update skill definition
+- [ ] Archive Python source (optional)
+- [ ] Deploy
