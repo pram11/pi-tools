@@ -1,30 +1,33 @@
 #!/bin/bash
-# install_skill.sh - Pi Code Analyst skill global deployment
+# install_skill.sh - Code Analyzer skill deployment (Rust binary)
 
-LOCAL_SKILL_DIR="./.pi/skills/code-analyzer"
+set -e
+
 GLOBAL_SKILL_DIR="$HOME/.pi/skills/code-analyzer"
+BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "Installing code-analyzer skill..."
+echo "Building code-analyzer..."
 
-if [ ! -d "$LOCAL_SKILL_DIR" ]; then
-    echo "ERROR: Local skill dir not found: $LOCAL_SKILL_DIR"
+if ! command -v cargo &> /dev/null; then
+    echo "ERROR: cargo not found. Install Rust first: https://rustup.rs"
     exit 1
 fi
 
-mkdir -p "$HOME/.pi/skills"
+cd "$BIN_DIR"
+cargo build --release
+BINARY="$BIN_DIR/target/release/code-analyzer"
 
-if [ -d "$GLOBAL_SKILL_DIR" ]; then
-    echo "Updating existing global skill..."
-    rm -rf "$GLOBAL_SKILL_DIR"
+if [ ! -f "$BINARY" ]; then
+    echo "ERROR: Build failed - binary not found"
+    exit 1
 fi
 
-cp -r "$LOCAL_SKILL_DIR" "$GLOBAL_SKILL_DIR"
-chmod +x "$GLOBAL_SKILL_DIR/scripts/"*.py 2>/dev/null || true
+mkdir -p "$GLOBAL_SKILL_DIR"
 
-if [ -f "$GLOBAL_SKILL_DIR/requirements.txt" ]; then
-    echo "Installing dependencies in venv..."
-    python3 -m venv "$GLOBAL_SKILL_DIR/.venv" 2>/dev/null
-    "$GLOBAL_SKILL_DIR/.venv/bin/pip" install -r "$GLOBAL_SKILL_DIR/requirements.txt" --quiet
-fi
+echo "Deploying binary to $GLOBAL_SKILL_DIR..."
+cp "$BINARY" "$GLOBAL_SKILL_DIR/code-analyzer"
+cp "$BIN_DIR/SKILL.md" "$GLOBAL_SKILL_DIR/SKILL.md"
+chmod +x "$GLOBAL_SKILL_DIR/code-analyzer"
 
-echo "Done: $GLOBAL_SKILL_DIR"
+echo "Done: $GLOBAL_SKILL_DIR/code-analyzer"
+echo "Binary size: $(du -h "$GLOBAL_SKILL_DIR/code-analyzer" | cut -f1)"
