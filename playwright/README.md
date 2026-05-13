@@ -1,16 +1,13 @@
 # Playwright Skill
 
-Headless Chromium browser automation via Playwright Python API. 46 actions for E2E testing, scraping, form automation, and UI verification.
+Headless Chromium browser automation via Playwright Rust API. 46 actions for E2E testing, scraping, form automation, and UI verification.
 
 ## Quick Start
 
 ```bash
-pip install -r requirements.txt
-python -m playwright install chromium
-
-# Navigate + screenshot
-python main.py --url https://example.com --action navigate
-python main.py --action screenshot --output page.png
+cargo build --release
+cargo run -- --url https://example.com navigate
+cargo run -- --action screenshot --output page.png
 ```
 
 ## Actions (46)
@@ -30,15 +27,15 @@ Full reference → [SKILL.md](./SKILL.md)
 Persistent browser context with cookie/localStorage persistence:
 
 ```bash
-python main.py session-start --url https://example.com
-python main.py --action click --selector "#btn"
-python main.py --action extract --selector "h1"
-python main.py session-stop
+cargo run -- session-start --url https://example.com
+cargo run -- --action click --selector "#btn"
+cargo run -- --action extract --selector "h1"
+cargo run -- session-stop
 ```
 
 ## Architecture
 
-- Single-process CLI (`main.py`) driving headless Chromium
+- Async Rust CLI (`src/main.rs`) driving headless Chromium
 - Session state in SQLite (`.sessions/state.db`) + Playwright storage_state JSON
 - Auto-recovery on page crash / navigation timeout (`--retries N`)
 - All actions return to stdout (JSON or plain text); errors to stderr with exit code 1
@@ -46,8 +43,12 @@ python main.py session-stop
 ## Testing
 
 ```bash
-.venv/bin/python -m pytest tests/
+cargo test
 ```
+
+## TDD Protocol
+
+See [AGENTS.md](./AGENTS.md) — Red → Green → Refactor cycle enforced for all new actions.
 
 ## Project Scope
 

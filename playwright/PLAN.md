@@ -50,3 +50,14 @@
 - [x] SKILL.md — bump version to 0.7.0, add missing flags (--retries, --baseline, --nth)
 - [x] Create README.md
 - [x] Sync ~/.pi/skills/playwright/SKILL.md
+
+## Phase 9: Rust Port
+- [ ] Scaffold Cargo.toml + src/ module tree
+- [ ] Port CLI entry (clap derive) + action dispatch
+- [ ] Port 46 actions → actions/ modules (TDD: Red-Green-Refactor)
+- [ ] Port session/ (rusqlite + serde_json)
+- [ ] Port screenshot-diff (image crate)
+- [ ] Port 26 pytest test files → cargo test
+- [ ] Remove Python artifacts (main.py, requirements.txt, .venv/, scripts/)
+- [ ] Update SKILL.md, AGENTS.md, README.md → Rust commands
+- [ ] Verify `cargo run -- --url <URL> --action navigate` end-to-end

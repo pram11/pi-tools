@@ -1,19 +1,17 @@
 ---
 name: playwright
 description: "Browser automation via Playwright. Navigate, click, type, extract data, take screenshots, assert page state, scrape tables, intercept network, generate PDFs, handle shadow DOM/iframes/dialogs, upload files, manage auth, orchestrate multi-tab flows. Use for E2E testing, scraping, form automation, and UI verification."
-version: 0.7.0
+version: 0.8.0
 ---
 
 # Playwright Skill
 
-Headless Chromium automation via Playwright Python API. 46 built-in actions across 7 capability tiers.
+Headless Chromium automation via Playwright Rust API. 46 built-in actions across 7 capability tiers.
 
 ## Usage
 
-> **Use project venv, not system Python. All deps live in `.venv/`.
-
 ```bash
-.venv/bin/python main.py --url <URL> --action <ACTION> [--selector <CSS>] [--value <TEXT>] [--output <FILE>]
+cargo run -- --url <URL> --action <ACTION> [--selector <CSS>] [--value <TEXT>] [--output <FILE>]
 ```
 
 ### Extra Flags
@@ -104,77 +102,82 @@ Persistent context via `session-start` / `session-stop`. State stored in `.sessi
 
 ```bash
 # Start session (navigates + saves cookies/localStorage)
-.venv/bin/python main.py session-start --url https://example.com
+cargo run -- session-start --url https://example.com
 
 # Subsequent actions reuse storage state (cookies, localStorage)
-.venv/bin/python main.py --action click --selector "#btn"
-.venv/bin/python main.py --action extract --selector "h1"
-.venv/bin/python main.py --action screenshot --output result.png
+cargo run -- --action click --selector "#btn"
+cargo run -- --action extract --selector "h1"
+cargo run -- --action screenshot --output result.png
 
 # End session (clears state)
-.venv/bin/python main.py session-stop
+cargo run -- session-stop
 ```
 
 ## Examples
 
 ```bash
 # Navigate + screenshot
-.venv/bin/python main.py --url https://example.com --action navigate
-.venv/bin/python main.py --action screenshot --output page.png
+cargo run -- --url https://example.com --action navigate
+cargo run -- --action screenshot --output page.png
 
 # Click + extract
-.venv/bin/python main.py --action click --selector "#submit"
-.venv/bin/python main.py --action extract --selector "h1"
+cargo run -- --action click --selector "#submit"
+cargo run -- --action extract --selector "h1"
 
 # JS evaluation
-.venv/bin/python main.py --action eval --value "document.title"
+cargo run -- --action eval --value "document.title"
 
 # Smart-fill form
-.venv/bin/python main.py --action smart-fill --value '{"username":"admin","password":"s3cret"}'
-.venv/bin/python main.py --action submit
+cargo run -- --action smart-fill --value '{"username":"admin","password":"s3cret"}'
+cargo run -- --action submit
 
 # Scrape table to CSV
-.venv/bin/python main.py --action scrape --selector "table" --value csv
+cargo run -- --action scrape --selector "table" --value csv
 
 # Multi-step wizard
-.venv/bin/python main.py --action wizard --value '[{"fields":{"name":"A"},"next":".next"},{"fields":{"email":"a@b.com"},"submit":true}]'
+cargo run -- --action wizard --value '[{"fields":{"name":"A"},"next":".next"},{"fields":{"email":"a@b.com"},"submit":true}]'
 
 # Shadow DOM pierce
-.venv/bin/python main.py --action shadow-pierce --value "#app >> .modal >> .title"
+cargo run -- --action shadow-pierce --value "#app >> .modal >> .title"
 
 # Network capture
-.venv/bin/python main.py --url https://api.example.com --action network
+cargo run -- --url https://api.example.com --action network
 
 # Auth injection (cookies)
-.venv/bin/python main.py --url https://app.com --action auth-inject \
+cargo run -- --url https://app.com --action auth-inject \
   --output cookies --value '[{"name":"token","value":"abc123"}]'
 
 # Auth injection (localStorage)
-.venv/bin/python main.py --url https://app.com --action auth-inject \
+cargo run -- --url https://app.com --action auth-inject \
   --output localStorage --value '{"theme":"dark","lang":"en"}'
 
 # Screenshot diff
-.venv/bin/python main.py --action screenshot-diff --baseline expected.png --output actual.png --value 0.95
+cargo run -- --action screenshot-diff --baseline expected.png --output actual.png --value 0.95
 
 # Batch assertions
-.venv/bin/python main.py --action report \
+cargo run -- --action report \
   --value '[{"type":"expect-text","selector":"h1","value":"Hello"},{"type":"expect-visible","selector":"#logo","value":""}]'
 
 # Multi-tab orchestration
-.venv/bin/python main.py --action tabs-open --value 3
-.venv/bin/python main.py --action tabs-gather --value "document.title"
-.venv/bin/python main.py --action tabs-broadcast --value '[{"action":"goto","args":["https://a.com"]},{"action":"goto","args":["https://b.com"]},{"action":"goto","args":["https://c.com"]}]'
+cargo run -- --action tabs-open --value 3
+cargo run -- --action tabs-gather --value "document.title"
 
 # Dialog handling
-.venv/bin/python main.py --action dialog-accept --selector "#confirm-btn"
-.venv/bin/python main.py --action dialog-prompt --selector "#prompt-btn" --value "my answer"
+cargo run -- --action dialog-accept --selector "#confirm-btn"
+cargo run -- --action dialog-prompt --selector "#prompt-btn" --value "my answer"
 ```
 
 ## Setup
 
 ```bash
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python -m playwright install chromium
+cargo build --release
+playwright install chromium
+```
+
+## Testing
+
+```bash
+cargo test
 ```
 
 ## Output

@@ -1,0 +1,27 @@
+[package]
+name = "pi-playwright"
+version = "0.8.0"
+edition = "2021"
+description = "Headless Chromium automation CLI — 46 actions across 7 tiers"
+
+[[bin]]
+name = "playwright"
+path = "src/main.rs"
+
+[dependencies]
+playwright = "0.0.22"
+tokio = { version = "1", features = ["full"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.31", features = ["bundled"] }
+image = "0.24"
+url = "2"
+anyhow = "1"
+thiserror = "1"
+log = "0.4"
+env_logger = "0.11"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
