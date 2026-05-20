@@ -1,0 +1,14 @@
+[package]
+name = "send_mail"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.6.1", features = ["derive", "env"] }
+lettre = { version = "0.11.22", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
+tokio = { version = "1.52.3", features = ["full"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+env_logger = "0.11"
+log = "0.4"
