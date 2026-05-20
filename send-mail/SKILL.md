@@ -1,5 +1,5 @@
 ---
-name: send_mail
+name: send-mail
 description: Send emails via SMTP (Gmail compatible). Supports plain text + HTML multipart.
 version: 0.1.0
 ---
@@ -39,13 +39,13 @@ send_mail --to <recipient> --from <sender> --subject <subject> \
 ```bash
 MAIL_HOST=smtp.gmail.com MAIL_PORT=587 MAIL_TLS=starttls \
 MAIL_USER=you@gmail.com MAIL_PASS="xxxx xxxx xxxx xxxx" \
-./target/release/send_mail -t recipient@example.com -f you@gmail.com -s "Test" --body "Hello"
+./target/release/send-mail -t recipient@example.com -f you@gmail.com -s "Test" --body "Hello"
 ```
 
 ## Build
 
 ```bash
-cd /root/.pi/agent/skills/send_mail
+cd /root/.pi/agent/skills/send-mail
 . "$HOME/.cargo/env"
 cargo build --release
 # Binary: target/release/send_mail

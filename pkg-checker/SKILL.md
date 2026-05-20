@@ -1,6 +1,9 @@
-# pkg-checker
+--- 
+name: pkg-checker
+description: Check latest version, dependencies, and doc links for packages across ecosystems.
+---
 
-Check latest version, dependencies, and doc links for packages across ecosystems.
+# pkg-checker
 
 ## Supported
 | Ecosystem | Registry |
