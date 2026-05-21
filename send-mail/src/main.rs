@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
+use dialoguer::Input;
 use lettre::{
     message::{header::ContentType, Mailbox, Message, MultiPart, SinglePart},
     transport::smtp::authentication::Credentials,
@@ -7,6 +8,8 @@ use lettre::{
     Transport,
 };
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 
 #[derive(Parser, Debug)]
 #[command(name = "send_mail")]
@@ -27,7 +30,7 @@ struct Cli {
     #[arg(long)]
     html: Option<String>,
 
-    #[arg(short, long, env = "MAIL_HOST")]
+    #[arg(long, env = "MAIL_HOST")]
     host: String,
 
     #[arg(short, long, default_value = "587")]
@@ -76,9 +79,49 @@ impl From<Cli> for MailConfig {
 
 impl MailConfig {
     pub fn from_env() -> Result<Self> {
+        let env_file = env_file_path()?;
+        ensure_dotenv(&env_file)?;
+        dotenvy::from_path(&env_file).ok();
         let cli = Cli::parse();
         Ok(cli.into())
     }
+}
+
+fn env_file_path() -> Result<std::path::PathBuf> {
+    let candidates = [
+        std::env::current_exe()?.parent().map(Path::new).map(|p| p.to_path_buf()),
+        Some(std::env::current_dir()?.join(".env")),
+    ];
+    for p in candidates.iter().filter_map(|o| o.as_ref()) {
+        let env_path = if p.is_file() { p.clone() } else { p.join(".env") };
+        if env_path.exists() {
+            return Ok(env_path);
+        }
+    }
+    Ok(std::env::current_dir()?.join(".env"))
+}
+
+fn ensure_dotenv(env_file: &Path) -> Result<()> {
+    if env_file.exists() {
+        dotenvy::from_path(env_file).ok();
+        return Ok(());
+    }
+    println!("\n.env not found. Setting up SMTP configuration...");
+    println!("(Values stored in {} for future use)\n", env_file.display());
+    let host: String = Input::<String>::new().with_prompt("SMTP Host").default("smtp.gmail.com".to_string()).interact_text()?;
+    let port_str: String = Input::<String>::new().with_prompt("SMTP Port").default("587".to_string()).interact_text()?;
+    let port: u16 = port_str.parse().unwrap_or(587);
+    let tls: String = Input::<String>::new().with_prompt("TLS (starttls/none)").default("starttls".to_string()).interact_text()?;
+    let user: String = Input::<String>::new().with_prompt("Username").interact_text()?;
+    let pass: String = dialoguer::Password::new().with_prompt("Password/App Password").interact()?;
+    let from: String = Input::<String>::new().with_prompt("From Email").interact_text()?;
+    let content = format!(
+        "MAIL_HOST={}\nMAIL_PORT={}\nMAIL_TLS={}\nMAIL_USER={}\nMAIL_PASS=\"{}\"\nMAIL_FROM={}\n",
+        host, port, tls, user, pass, from
+    );
+    fs::write(env_file, content)?;
+    println!("\n.env written. Re-run to send email.\n");
+    std::process::exit(0);
 }
 
 pub fn build_email(config: &MailConfig) -> Result<Message> {
@@ -131,7 +174,7 @@ pub fn send_email_sync(config: &MailConfig) -> Result<()> {
     let result = mailer.send(&email);
     match result {
         Ok(response) => {
-            log::info!("Email sent successfully: {:?}", response);
+            println!("Email sent successfully: {:?}", response);
             Ok(())
         }
         Err(e) => Err(anyhow::anyhow!("Failed to send email: {:?}", e)),
