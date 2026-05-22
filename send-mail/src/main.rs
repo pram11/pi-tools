@@ -82,16 +82,24 @@ impl From<Cli> for MailConfig {
 
 impl MailConfig {
     pub fn from_env() -> Result<Self> {
-        let cli = Cli::parse();
-        let env_file = if let Some(path) = cli.env_file.clone() {
-            std::path::PathBuf::from(path)
-        } else {
-            env_file_path()?
-        };
+        // Load .env BEFORE clap parses (clap reads env vars at parse time)
+        let env_file = resolve_env_path()?;
         ensure_dotenv(&env_file)?;
         dotenvy::from_path(&env_file).ok();
+        let cli = Cli::parse();
         Ok(cli.into())
     }
+}
+
+fn resolve_env_path() -> Result<std::path::PathBuf> {
+    // Check for --env-file in args manually (before clap parses)
+    let args: Vec<String> = std::env::args().collect();
+    for i in 0..args.len() {
+        if (args[i] == "--env-file" || args[i] == "-e") && i + 1 < args.len() {
+            return Ok(std::path::PathBuf::from(args[i + 1].clone()));
+        }
+    }
+    env_file_path()
 }
 
 fn env_file_path() -> Result<std::path::PathBuf> {
@@ -117,7 +125,6 @@ fn env_file_path() -> Result<std::path::PathBuf> {
 
 fn ensure_dotenv(env_file: &Path) -> Result<()> {
     if env_file.exists() {
-        dotenvy::from_path(env_file).ok();
         return Ok(());
     }
     println!("\n.env not found. Setting up SMTP configuration...");
