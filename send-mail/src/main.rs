@@ -44,6 +44,9 @@ struct Cli {
 
     #[arg(long, default_value = "starttls")]
     tls: String,
+
+    #[arg(short = 'e', long, help = "Path to .env file (overrides auto-detection)")]
+    env_file: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -79,26 +82,37 @@ impl From<Cli> for MailConfig {
 
 impl MailConfig {
     pub fn from_env() -> Result<Self> {
-        let env_file = env_file_path()?;
+        let cli = Cli::parse();
+        let env_file = if let Some(path) = cli.env_file.clone() {
+            std::path::PathBuf::from(path)
+        } else {
+            env_file_path()?
+        };
         ensure_dotenv(&env_file)?;
         dotenvy::from_path(&env_file).ok();
-        let cli = Cli::parse();
         Ok(cli.into())
     }
 }
 
 fn env_file_path() -> Result<std::path::PathBuf> {
-    let candidates = [
-        std::env::current_exe()?.parent().map(Path::new).map(|p| p.to_path_buf()),
-        Some(std::env::current_dir()?.join(".env")),
-    ];
-    for p in candidates.iter().filter_map(|o| o.as_ref()) {
-        let env_path = if p.is_file() { p.clone() } else { p.join(".env") };
+    let cwd = std::env::current_dir()?;
+
+    // Check exe directory first
+    if let Some(exe_dir) = std::env::current_exe()?.parent().map(|p| p.to_path_buf()) {
+        let env_path = exe_dir.join(".env");
         if env_path.exists() {
             return Ok(env_path);
         }
     }
-    Ok(std::env::current_dir()?.join(".env"))
+
+    // Check cwd
+    let cwd_env = cwd.join(".env");
+    if cwd_env.exists() {
+        return Ok(cwd_env);
+    }
+
+    // Fallback: cwd/.env
+    Ok(cwd.join(".env"))
 }
 
 fn ensure_dotenv(env_file: &Path) -> Result<()> {
@@ -232,5 +246,27 @@ mod tests {
         let email = build_email(&config).unwrap();
         let formatted = String::from_utf8(email.formatted()).unwrap();
         assert!(formatted.contains("<h1>Hello</h1>"));
+    }
+
+    #[test]
+    fn test_env_file_path_returns_cwd_fallback() {
+        let path = env_file_path().unwrap();
+        assert!(path.ends_with(".env"));
+    }
+
+    #[test]
+    fn test_env_file_path_prefers_existing() {
+        let dir = std::env::temp_dir().join("sendmail_env_test");
+        fs::create_dir_all(&dir).ok();
+        let env_path = dir.join(".env");
+        fs::write(&env_path, "MAIL_HOST=test").ok();
+
+        // Simulate: if cwd has .env, it should be found
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&dir).ok();
+        let found = env_file_path().unwrap();
+        std::env::set_current_dir(&original_dir).ok();
+        assert_eq!(found, env_path);
+        fs::remove_dir_all(&dir).ok();
     }
 }

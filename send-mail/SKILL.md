@@ -10,7 +10,11 @@ Rust binary — uses `lettre` (latest) with rustls TLS. Single binary deploy.
 
 ## .env Configuration
 
-Binary auto-loads `.env` from current directory (or binary's parent dir).
+Binary auto-loads `.env` in search order:
+1. Binary's directory (`<exe_dir>/.env`)
+2. Current working directory (`./.env`)
+
+Override with `--env-file` (`-e`) to load `.env` from a specific path.
 
 **If `.env` missing** → interactive prompt collects SMTP creds, writes `.env`, exits.
 
@@ -48,6 +52,7 @@ All SMTP fields default from `.env` / env vars. Only `--to` + `--subject` requir
 | `--user` | | `MAIL_USER` | Auth username |
 | `--pass` | | `MAIL_PASS` | Auth password / app password |
 | `--tls` | | `MAIL_TLS` | `starttls` (default) or `none` |
+| `--env-file` | `-e` | | Path to `.env` file (overrides auto-detection) |
 
 ## Gmail Setup
 
