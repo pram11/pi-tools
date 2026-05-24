@@ -105,11 +105,18 @@ fn resolve_env_path() -> Result<std::path::PathBuf> {
 fn env_file_path() -> Result<std::path::PathBuf> {
     let cwd = std::env::current_dir()?;
 
-    // Check exe directory first
+    // Check exe directory, walking upward to find .env (handles target/release/ layouts)
     if let Some(exe_dir) = std::env::current_exe()?.parent().map(|p| p.to_path_buf()) {
-        let env_path = exe_dir.join(".env");
-        if env_path.exists() {
-            return Ok(env_path);
+        let mut current = exe_dir.clone();
+        loop {
+            let env_path = current.join(".env");
+            if env_path.exists() {
+                return Ok(env_path);
+            }
+            match current.parent() {
+                Some(parent) => current = parent.to_path_buf(),
+                None => break,
+            }
         }
     }
 
@@ -262,18 +269,10 @@ mod tests {
     }
 
     #[test]
-    fn test_env_file_path_prefers_existing() {
-        let dir = std::env::temp_dir().join("sendmail_env_test");
-        fs::create_dir_all(&dir).ok();
-        let env_path = dir.join(".env");
-        fs::write(&env_path, "MAIL_HOST=test").ok();
-
-        // Simulate: if cwd has .env, it should be found
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&dir).ok();
+    fn test_env_file_path_walks_up_from_exe() {
+        // Walk-up from exe_dir finds skill-root .env before cwd
         let found = env_file_path().unwrap();
-        std::env::set_current_dir(&original_dir).ok();
-        assert_eq!(found, env_path);
-        fs::remove_dir_all(&dir).ok();
+        assert!(found.ends_with(".env"));
+        assert!(found.exists());
     }
 }

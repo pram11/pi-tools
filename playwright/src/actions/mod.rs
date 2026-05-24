@@ -101,34 +101,34 @@ pub async fn dispatch(
 #[derive(Parser, Debug)]
 pub struct CliArgs {
     /// Target URL
-    #[arg(global = true)]
+    #[arg(global = true, long, short = 'u')]
     pub url: Option<String>,
 
     /// CSS selector
-    #[arg(global = true)]
+    #[arg(global = true, long, short = 's')]
     pub selector: Option<String>,
 
     /// Value (type/eval/wait/JSON input)
-    #[arg(global = true)]
+    #[arg(global = true, long, short = 'v')]
     pub value: Option<String>,
 
     /// Output file path
-    #[arg(global = true)]
+    #[arg(global = true, long, short = 'o')]
     pub output: Option<String>,
 
     /// Baseline screenshot for diff comparison
-    #[arg(global = true)]
+    #[arg(global = true, long)]
     pub baseline: Option<String>,
 
     /// Navigation timeout in ms (default 30000)
-    #[arg(global = true, default_value = "30000")]
+    #[arg(global = true, long, default_value = "30000")]
     pub timeout: u64,
 
     /// Max retry attempts on crash/timeout (default 1)
-    #[arg(global = true, default_value = "1")]
+    #[arg(global = true, long, default_value = "1")]
     pub retries: usize,
 
     /// 0-based index for extract-all (default: all)
-    #[arg(global = true)]
+    #[arg(global = true, long)]
     pub nth: Option<usize>,
 }

@@ -20,7 +20,7 @@ struct Cli {
     args: CliArgs,
 
     /// Action to perform
-    #[arg()]
+    #[arg(long, short = 'a')]
     action: Option<String>,
 }
 
@@ -84,14 +84,12 @@ async fn main() -> Result<()> {
 
 async fn launch_browser(args: &CliArgs) -> Result<(Browser, BrowserContext, Page)> {
     let pw = Playwright::initialize().await?;
-    let browser = pw.chromium().launcher().headless(true).launch().await?;
+    let browser = pw.chromium().launcher()
+        .headless(true)
+        .args(&["--no-sandbox".into(), "--disable-setuid-sandbox".into()])
+        .launch().await?;
     let context = browser.context_builder().build().await?;
     let page = context.new_page().await?;
-
-    let url = args.url.clone().or_else(|| session::load_session().map(|s| s.url));
-    if let Some(ref target_url) = url {
-        navigate_with_retry(&page, target_url, args.retries, args.timeout).await?;
-    }
 
     Ok((browser, context, page))
 }
@@ -116,7 +114,10 @@ async fn navigate_with_retry(page: &Page, url: &str, retries: usize, timeout: u6
 
 async fn session_start(url: &str) -> Result<()> {
     let pw = Playwright::initialize().await?;
-    let browser = pw.chromium().launcher().headless(true).launch().await?;
+    let browser = pw.chromium().launcher()
+        .headless(true)
+        .args(&["--no-sandbox".into(), "--disable-setuid-sandbox".into()])
+        .launch().await?;
     let context = browser.context_builder().build().await?;
     let page = context.new_page().await?;
     page.goto_builder(url).goto().await?;

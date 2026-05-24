@@ -23,3 +23,8 @@ Thumbs.db
 # SQLite DB (knowledge-base)
 *.db
 *.sqlite
+
+# Node
+**/node_modules/
+**/package-lock.json
+**/.env
